@@ -40,9 +40,20 @@ def save_results(results, site_name):
     # 결과 디렉토리가 없으면 생성
     os.makedirs('results', exist_ok=True)
 
+    # site_name 한글화 처리
+    siteMap = {
+        "vapemonster": "베이프몬스터(베몬)",
+        "vapinglab": "김성유베이핑연구소(김성유)",
+        "juice24": "액상24",
+        "juice99": "액상99",
+        "juicebox": "쥬스박스",
+        "juiceshop": "액상샵",
+        "skyvape": "스카이베이프",
+    }
+
     # 타임스탬프가 포함된 파일 이름 생성
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    filename = f"results/{site_name}_{timestamp}.json"
+    filename = f"results/{siteMap[site_name]}_{timestamp}.json"
 
     # 결과를 파일에 저장
     with open(filename, 'w', encoding='utf-8') as f:
@@ -65,7 +76,8 @@ def run_crawler(crawler_class, keywords, headless, categories=None):
     crawler = None
     try:
         # VapeMonsterCrawler, VapingLabCrawler, Juice24Crawler, Juice99Crawler, JuiceboxCrawler, JuiceshopCrawler, SkyVapeCrawler인 경우 카테고리 처리
-        if (crawler_class in [VapeMonsterCrawler, VapingLabCrawler, Juice24Crawler, Juice99Crawler, JuiceboxCrawler, JuiceshopCrawler, SkyVapeCrawler]) and categories and len(categories) > 0:
+        if (crawler_class in [VapeMonsterCrawler, VapingLabCrawler, Juice24Crawler, Juice99Crawler, JuiceboxCrawler, JuiceshopCrawler, SkyVapeCrawler]) and categories and len(
+                categories) > 0:
             # 첫 번째 카테고리로 인스턴스 생성
             first_category = categories[0]
             logger.info(f"Creating {crawler_class.__name__} with initial category: {first_category}")
