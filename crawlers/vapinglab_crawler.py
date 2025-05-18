@@ -2,6 +2,7 @@
 베이핑랩 크롤러 구현.
 """
 import time
+import re
 from selenium.webdriver.common.by import By
 from .base_crawler import BaseCrawler
 
@@ -61,7 +62,7 @@ class VapingLabCrawler(BaseCrawler):
 
             # 모든 제품 요소 찾기 (베이핑랩 사이트 구조에 맞는 선택자)
             # 이슈 설명에서 제공된 HTML 구조에 맞게 선택자 설정
-            product_elements = self.find_elements(By.CSS_SELECTOR, "div.shopProductNameAndPrice")
+            product_elements = self.find_elements(By.CSS_SELECTOR, ".shopProductWrapper")
 
             if not product_elements:
                 self.logger.warning("페이지에서 제품 요소를 찾을 수 없습니다")
@@ -73,134 +74,55 @@ class VapingLabCrawler(BaseCrawler):
             # 제품 정보 추출
             for element in product_elements:
                 try:
-                    # 제품 제목 추출 (베이핑랩 사이트 구조에 맞는 선택자)
-                    title = "N/A"
-                    # 이슈 설명에서 제공된 HTML 구조에 맞게 선택자 설정
-                    for title_selector in [".shopProductNameAndPrice .productName"]:
-                        try:
-                            title_element = element.find_element(By.CSS_SELECTOR, title_selector)
-                            if title_element:
-                                title = title_element.text.strip()
-                                self.logger.debug(f"제품 제목을 '{title_selector}' 선택자로 찾았습니다: {title}")
-                                break
-                        except:
-                            continue
+                    # 제품 제목 추출
+                    try:
+                        title_element = element.find_element(By.CSS_SELECTOR, ".shopProductNameAndPriceDiv .productName")
+                        title = title_element.text.strip() if title_element else "N/A"
+                    except Exception as e:
+                        self.logger.error(f"제품 제목 요소를 찾을 수 없습니다: {str(e)}")
+                        title = "N/A"
+                        exit()
 
                     # 제품 설명 추출
                     detail_comment = ""
 
                     # 제품 가격 추출 (베이핑랩 사이트 구조에 맞는 선택자)
-                    price_str = "N/A"
-                    # 이슈 설명에서 제공된 HTML 구조에 맞게 선택자 설정
-                    for price_selector in [".shopProductNameAndPrice .productPriceSpan"]:
-                        try:
-                            price_element = element.find_element(By.CSS_SELECTOR, price_selector)
-                            if price_element:
-                                price_str = price_element.text.strip()
-                                self.logger.debug(f"제품 가격을 '{price_selector}' 선택자로 찾았습니다: {price_str}")
-                                break
-                        except:
-                            continue
+                    try:
+                        price_element = element.find_element(By.CSS_SELECTOR, ".shopProductNameAndPriceDiv .price span")
+                        price_str = price_element.text.strip() if price_element else "N/A"
+                    except Exception as e:
+                        self.logger.error(f"가격 요소를 찾을 수 없습니다: {str(e)}")
+                        price_str = "N/A"
+                        exit()
 
                     # 가격을 정수로 변환 (쉼표 제거, 원 기호 제거)
                     price = 0
                     if price_str != "N/A":
                         try:
                             # '원' 제거 및 쉼표 제거 후 정수로 변환
-                            price_str = price_str.replace('원', '').replace('₩', '').replace('KRW', '').replace(',', '')
-                            # 숫자만 추출
-                            import re
-                            price_digits = re.search(r'\d+', price_str)
-                            if price_digits:
-                                price = int(price_digits.group())
-                            else:
-                                self.logger.warning(f"가격에서 숫자를 추출할 수 없습니다: {price_str}")
+                            price = int(price_str.replace('원', '').replace(',', ''))
                         except ValueError:
-                            self.logger.warning(f"가격을 정수로 변환할 수 없습니다: {price_str}")
+                            self.logger.error(f"가격을 정수로 변환할 수 없습니다: {price_str}")
                             price = 0
+                            exit()
 
-                    # 제품 URL 추출 (.shopProductWrapper a href 값 이용)
-                    url = "N/A"
+                    # 제품 URL 추출
                     try:
-                        # 현재 요소의 부모 요소 중에서 .shopProductWrapper 찾기
-                        parent = element
-                        for _ in range(5):  # 최대 5단계 상위로 탐색
-                            try:
-                                parent = parent.find_element(By.XPATH, "..")
-                                if "shopProductWrapper" in parent.get_attribute("class"):
-                                    break
-                            except:
-                                break
-
-                        # .shopProductWrapper 내의 a 태그 찾기
-                        url_element = parent.find_element(By.CSS_SELECTOR, "a")
-                        if url_element:
-                            url = url_element.get_attribute("href")
-                            if url:
-                                self.logger.debug(f"제품 URL을 '.shopProductWrapper a' 선택자로 찾았습니다")
+                        url_element = element.find_element(By.CSS_SELECTOR, ".shopProductWrapper a")
+                        url = url_element.get_attribute("href") if url_element else "N/A"
                     except Exception as e:
-                        self.logger.debug(f"제품 URL 추출 중 오류 발생: {str(e)}")
+                        self.logger.error(f"제품 URL 요소를 찾을 수 없습니다: {str(e)}")
+                        url = "N/A"
+                        exit()
 
-                        # 기존 방식으로 대체 시도
-                        for url_selector in ["a.item-link", "a.link", "a.product-link", "a"]:
-                            try:
-                                url_element = element.find_element(By.CSS_SELECTOR, url_selector)
-                                if url_element:
-                                    url = url_element.get_attribute("href")
-                                    if url:
-                                        self.logger.debug(f"제품 URL을 '{url_selector}' 선택자로 찾았습니다")
-                                        break
-                            except:
-                                continue
-
-                    # 제품 이미지 URL 추출 (.shopProductWrapper .thumbDiv.img imgsrc 값 이용)
-                    img_url = "N/A"
+                    # 제품 이미지 URL 추출
                     try:
-                        # 현재 요소의 부모 요소 중에서 .shopProductWrapper 찾기 (URL 추출에서 이미 찾은 경우 재사용)
-                        if 'parent' not in locals() or parent is None:
-                            parent = element
-                            for _ in range(5):  # 최대 5단계 상위로 탐색
-                                try:
-                                    parent = parent.find_element(By.XPATH, "..")
-                                    if "shopProductWrapper" in parent.get_attribute("class"):
-                                        break
-                                except:
-                                    break
-
-                        # 다양한 선택자와 속성 시도
-                        selectors_to_try = [
-                            ".thumbDiv .img",
-                            ".thumbDiv img",
-                            "img.img",
-                            ".thumbDiv .img img",
-                            ".thumbDiv > img",
-                            ".thumbDiv",
-                            "img"
-                        ]
-
-                        attributes_to_try = ["src", "data-src", "data-original", "data-lazy-src", "data-image", "imgsrc"]
-
-                        for selector in selectors_to_try:
-                            try:
-                                self.logger.debug(f"부모 요소에서 '{selector}' 선택자로 이미지 요소 찾기 시도")
-                                img_elements = parent.find_elements(By.CSS_SELECTOR, selector)
-                                if img_elements:
-                                    for img_element in img_elements:
-                                        for attr in attributes_to_try:
-                                            attr_value = img_element.get_attribute(attr)
-                                            if attr_value:
-                                                img_url = attr_value
-                                                self.logger.debug(f"제품 이미지 URL을 '{selector}' 선택자와 '{attr}' 속성으로 찾았습니다: {img_url}")
-                                                break
-                                        if img_url != "N/A":
-                                            break
-                                if img_url != "N/A":
-                                    break
-                            except Exception as e:
-                                self.logger.debug(f"'{selector}' 선택자로 이미지 요소 찾기 실패: {str(e)}")
-                                continue
+                        img_element = element.find_element(By.CSS_SELECTOR, ".thumbDiv .img")
+                        img_url = img_element.get_attribute("imgsrc") if img_element else "N/A"
                     except Exception as e:
-                        self.logger.debug(f"제품 이미지 URL 추출 중 오류 발생: {str(e)}")
+                        self.logger.error(f"제품 이미지 URL 요소를 찾을 수 없습니다: {str(e)}")
+                        img_url = ""
+                        exit()
 
                     # 제품 정보를 딕셔너리로 생성하여 products 배열에 추가
                     product_info = {
@@ -215,7 +137,7 @@ class VapingLabCrawler(BaseCrawler):
                     self.logger.debug(f"제품 정보를 추가했습니다: {title}")
                 except Exception as e:
                     self.logger.error(f"제품 정보 추출 중 오류 발생: {str(e)}")
-                    continue
+                    exit()
 
             # 다음 페이지로 이동
             try:
