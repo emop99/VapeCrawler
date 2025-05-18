@@ -111,8 +111,8 @@ class JuiceshopCrawler(BaseCrawler):
 
                     # 제품 이미지 URL 추출
                     try:
-                        img_element = element.find_element(By.CSS_SELECTOR, ".thumbnail img")
-                        img_url = img_element.get_attribute("src") if img_element else "N/A"
+                        img_element = element.find_element(By.CSS_SELECTOR, ".thumbnail a img")
+                        img_url = img_element.get_attribute("ec-data-src") if img_element else "N/A"
                     except Exception as e:
                         self.logger.warning(f"제품 이미지 URL 요소를 찾을 수 없습니다: {str(e)}")
                         img_url = "N/A"
