@@ -15,7 +15,6 @@ class VapeMonsterCrawler(BaseCrawler):
     CATEGORIES = {
         "입호흡": "006",
         "폐호흡": "007",
-        "무니코틴": "014",
     }
 
     def __init__(self, headless=True, category="입호흡"):
@@ -24,7 +23,7 @@ class VapeMonsterCrawler(BaseCrawler):
 
         Args:
             headless (bool): 크롬을 헤드리스 모드로 실행할지 여부
-            category (str): 크롤링할 카테고리 (입호흡, 폐호흡, 무니코틴)
+            category (str): 크롤링할 카테고리 (입호흡, 폐호흡)
         """
         super().__init__("vapemonster", headless)
         self.base_url = "https://www.vapemonster.co.kr"
@@ -158,7 +157,7 @@ class VapeMonsterCrawler(BaseCrawler):
 
         Args:
             keywords (list): 이 크롤러에서는 사용되지 않음 (카테고리 기반 크롤링)
-            categories (list): 크롤링할 카테고리 목록 (입호흡, 폐호흡, 무니코틴)
+            categories (list): 크롤링할 카테고리 목록 (입호흡, 폐호흡)
 
         Returns:
             dict: 카테고리를 제품 목록에 매핑하는 딕셔너리

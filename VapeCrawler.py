@@ -22,7 +22,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('vape_crawler.log'),
+        logging.FileHandler('log/vape_crawler.log', encoding='utf-8'),
         logging.StreamHandler()
     ]
 )
@@ -110,8 +110,8 @@ def main():
                         help='Sites to crawl (default: all)')
     parser.add_argument('--keywords', nargs='+', default=['vape'],
                         help='Keywords to search for (default: vape)')
-    parser.add_argument('--categories', nargs='+', choices=['입호흡', '폐호흡', '무니코틴'],
-                        help='Categories to crawl (VapeMonster: 입호흡, 폐호흡, 무니코틴 / VapingLab: 입호흡, 폐호흡 / Juice24: 입호흡, 폐호흡 / Juice99: 입호흡, 폐호흡 / Juicebox: 입호흡, 폐호흡 / Juiceshop: 입호흡, 폐호흡 / SkyVape: 입호흡, 폐호흡)')
+    parser.add_argument('--categories', nargs='+', choices=['입호흡', '폐호흡'],
+                        help='Categories to crawl (VapeMonster: 입호흡, 폐호흡 / VapingLab: 입호흡, 폐호흡 / Juice24: 입호흡, 폐호흡 / Juice99: 입호흡, 폐호흡 / Juicebox: 입호흡, 폐호흡 / Juiceshop: 입호흡, 폐호흡 / SkyVape: 입호흡, 폐호흡)')
     parser.add_argument('--no-headless', action='store_true',
                         help='Run browsers in non-headless mode (visible)')
     args = parser.parse_args()
