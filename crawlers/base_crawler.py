@@ -38,7 +38,7 @@ class BaseCrawler:
         # Create handlers if they don't exist
         if not self.logger.handlers:
             # Create file handler
-            file_handler = logging.FileHandler('vape_crawler.log')
+            file_handler = logging.FileHandler('log/vape_crawler.log', encoding='utf-8')
             file_handler.setLevel(log_level)
 
             # Create console handler
