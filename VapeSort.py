@@ -281,6 +281,23 @@ def group_products(integrated_products):
 
 # --- 실행 ---
 if __name__ == "__main__":
+    # 명령줄 인수 파싱
+    import argparse
+    parser = argparse.ArgumentParser(description='VapeSort - 베이프 상품 정보 정렬 및 그룹화 스크립트')
+    parser.add_argument('--env-file', type=str, help='사용할 .env 파일 경로 (예: .env.development)')
+    args = parser.parse_args()
+
+    # 환경 변수 파일 경로 설정
+    env_file = args.env_file
+    if env_file:
+        logger.info(f"사용자 지정 환경 설정 파일 사용: {env_file}")
+        # 환경 변수 파일이 존재하는지 확인
+        if not os.path.exists(env_file):
+            logger.error(f"지정한 환경 설정 파일이 존재하지 않습니다: {env_file}")
+            exit(1)
+    else:
+        logger.info("기본 환경 설정 파일 사용")
+
     # ../results 폴더 내 json 파일 불러오기
     uploaded_file_references = []
     results_dir = os.path.join("results")
@@ -301,8 +318,8 @@ if __name__ == "__main__":
         logger.error(f"예상 파일명: {uploaded_file_references}")
         exit()
 
-    # 데이터베이스 연결
-    _db = MariaDBConnector()
+    # 데이터베이스 연결 (환경 변수 파일 경로 전달)
+    _db = MariaDBConnector(env_file=env_file)
     if not _db.connect():
         logger.error("데이터베이스 연결 실패")
         exit()

@@ -9,7 +9,7 @@ class MariaDBConnector:
     MariaDB 데이터베이스에 연결하고 쿼리를 실행하기 위한 클래스
     """
 
-    def __init__(self, host='localhost', port=3306, user='root', password='', database='', charset='utf8mb4'):
+    def __init__(self, host='localhost', port=3306, user='root', password='', database='', charset='utf8mb4', env_file=None):
         """
         MariaDB 연결에 필요한 정보로 초기화합니다.
 
@@ -20,10 +20,18 @@ class MariaDBConnector:
             password (str): 데이터베이스 비밀번호
             database (str): 사용할 데이터베이스 이름
             charset (str): 문자셋
+            env_file (str, optional): 사용할 .env 파일 경로. 기본값은 None으로, 기본 .env 파일을 사용합니다.
         """
+        # 로거 초기화
+        self.logger = logging.getLogger(__name__)
 
         # .env 파일 로드
-        load_dotenv()
+        if env_file:
+            self.logger.info(f"환경 설정 파일 로드: {env_file}")
+            load_dotenv(dotenv_path=env_file)
+        else:
+            self.logger.info("기본 환경 설정 파일 로드")
+            load_dotenv()
 
         self.host = os.getenv('DB_HOST')
         self.port = int(os.getenv('DB_PORT', '3306'))

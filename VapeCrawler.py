@@ -126,6 +126,8 @@ def main():
                         help='Categories to crawl (VapeMonster: 입호흡, 폐호흡 / VapingLab: 입호흡, 폐호흡 / Juice24: 입호흡, 폐호흡 / Juice99: 입호흡, 폐호흡 / Juicebox: 입호흡, 폐호흡 / Juiceshop: 입호흡, 폐호흡 / SkyVape: 입호흡, 폐호흡)')
     parser.add_argument('--no-headless', action='store_true',
                         help='Run browsers in non-headless mode (visible)')
+    parser.add_argument('--env-file', type=str,
+                        help='Path to the .env file to use (e.g., .env.development)')
     args = parser.parse_args()
 
     # 크롤링할 사이트 결정
