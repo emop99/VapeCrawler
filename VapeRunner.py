@@ -111,6 +111,7 @@ def main():
     import argparse
     parser = argparse.ArgumentParser(description='VapeRunner - 전자담배 제품 크롤링 및 정렬 자동화 스크립트')
     parser.add_argument('--env-file', type=str, help='사용할 .env 파일 경로 (예: .env.development)')
+    parser.add_argument('--interval', type=int, help='실행 간격 (분 단위, 예: 60은 1시간마다 실행)')
     args = parser.parse_args()
 
     # 환경 변수 파일 경로 설정
@@ -124,25 +125,45 @@ def main():
     else:
         logger.info("기본 환경 설정 파일 사용")
 
-    start_time = time.time()
-    logger.info("VapeRunner 시작")
+    # 실행 간격 설정
+    interval = args.interval
 
-    # VapeCrawler 실행 (환경 변수 파일 경로 전달)
-    crawler_success = run_vape_crawler(env_file)
-    if not crawler_success:
-        logger.error("VapeCrawler 실행 실패. 프로세스를 중단합니다.")
-        return
+    def run_process():
+        """실제 작업을 수행하는 내부 함수"""
+        start_time = time.time()
+        logger.info("VapeRunner 작업 시작")
 
-    # VapeSort 실행 (환경 변수 파일 경로 전달)
-    sort_success = run_vape_sort(env_file)
-    if not sort_success:
-        logger.error("VapeSort 실행 실패. JSON 파일 정리를 진행합니다.")
+        # VapeCrawler 실행 (환경 변수 파일 경로 전달)
+        crawler_success = run_vape_crawler(env_file)
+        if not crawler_success:
+            logger.error("VapeCrawler 실행 실패. 프로세스를 중단합니다.")
+            return False
 
-    # JSON 파일 정리
-    clean_json_files()
+        # VapeSort 실행 (환경 변수 파일 경로 전달)
+        sort_success = run_vape_sort(env_file)
+        if not sort_success:
+            logger.error("VapeSort 실행 실패. JSON 파일 정리를 진행합니다.")
 
-    end_time = time.time()
-    logger.info(f"VapeRunner 완료. 총 소요 시간: {end_time - start_time:.2f}초")
+        # JSON 파일 정리
+        clean_json_files()
+
+        end_time = time.time()
+        logger.info(f"VapeRunner 작업 완료. 총 소요 시간: {end_time - start_time:.2f}초")
+        return True
+
+    if interval:
+        logger.info(f"인터벌 모드 활성화: {interval}분마다 실행")
+        try:
+            while True:
+                success = run_process()
+                logger.info(f"{interval}분 후 다음 실행 예정 (현재 시간: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')})")
+                # 다음 실행까지 대기 (분 단위를 초 단위로 변환)
+                time.sleep(interval * 60)
+        except KeyboardInterrupt:
+            logger.info("사용자에 의해 프로그램이 종료되었습니다.")
+    else:
+        # 단일 실행 모드
+        run_process()
 
 if __name__ == "__main__":
     main()

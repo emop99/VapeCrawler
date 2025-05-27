@@ -40,7 +40,7 @@
 
 2. 필요한 패키지 설치:
    ```bash
-   pip install selenium
+   pip install selenium pymysql load_dotenv
    ```
 
 3. Chrome과 ChromeDriver가 설치되어 있는지 확인:
@@ -125,22 +125,65 @@ python VapeCrawler.py --sites vapemonster --keywords "pod" --categories 입호�
 python VapeCrawler.py --sites vapemonster vapinglab --keywords "pod" "liquid" --categories 입호흡 폐호흡 --no-headless
 ```
 
+### VapeRunner 사용법
+
+VapeRunner는 VapeCrawler와 VapeSort를 순차적으로 실행하고, 모든 작업이 완료된 후 로그 파일을 정리하는 자동화 스크립트입니다.
+
+#### 기본 사용법
+
+기본 설정으로 VapeRunner 실행:
+```bash
+python VapeRunner.py
+```
+
+#### 환경 설정 파일 지정
+
+특정 환경 설정 파일을 사용하여 실행:
+```bash
+python VapeRunner.py --env-file .env.development
+```
+
+#### 주기적 실행 (N분 간격)
+
+VapeRunner를 특정 시간 간격으로 반복 실행:
+```bash
+python VapeRunner.py --interval 60  # 60분(1시간)마다 실행
+```
+
+```bash
+python VapeRunner.py --interval 30  # 30분마다 실행
+```
+
+```bash
+python VapeRunner.py --env-file .env.development --interval 120  # 2시간마다 실행 (특정 환경 설정 파일 사용)
+```
+
+주기적 실행 모드에서는 Ctrl+C를 눌러 프로그램을 종료할 수 있습니다.
+
 ## 프로젝트 구조
 
 ```
 VapeCrawler/
-├── VapeCrawler.py         # 메인 스크립트 (진입점)
+├── VapeCrawler.py         # 크롤링 메인 스크립트
+├── VapeSort.py            # 크롤링 데이터 정렬 스크립트
+├── VapeRunner.py          # 크롤링 및 정렬 자동화 스크립트
 ├── crawlers/              # 크롤러 모듈
 │   ├── __init__.py        # 패키지 초기화
 │   ├── base_crawler.py    # 기본 크롤러 클래스
 │   ├── vapemonster_crawler.py  # VapeMonster 사이트용 크롤러
 │   ├── vapinglab_crawler.py    # VapingLab 사이트용 크롤러
 │   └── juice24_crawler.py      # Juice24 사이트용 크롤러
+├── module/                # 유틸리티 모듈
+│   └── MariaDBConnector.py # 데이터베이스 연결 모듈
 ├── results/               # 크롤링 결과 저장 디렉토리
 │   ├── vapemonster_*.json # VapeMonster 크롤링 결과
 │   ├── vapinglab_*.json   # VapingLab 크롤링 결과
 │   └── juice24_*.json     # Juice24 크롤링 결과
-└── vape_crawler.log       # 로그 파일
+├── log/                   # 로그 디렉토리
+│   ├── vape_crawler.log   # 크롤러 로그 파일
+│   ├── vape_sort.log      # 정렬 로그 파일
+│   └── vape_runner.log    # 자동화 실행 로그 파일
+└── .env                   # 환경 설정 파일
 ```
 
 ## 새 크롤러 추가하기
