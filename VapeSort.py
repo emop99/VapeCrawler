@@ -2,8 +2,9 @@ import json
 import logging
 import re
 import os
-from collections import defaultdict
 from module.MariaDBConnector import MariaDBConnector
+import Levenshtein
+import concurrent.futures
 
 """
 VapeSort.py - 베이프 상품 정보 정렬 및 그룹화 스크립트
@@ -73,6 +74,7 @@ def get_vape_seller_from_db():
         logger.error(f"프로그램을 종료합니다.")
         exit(1)
 
+
 def get_vape_product_category_from_db():
     global _db
 
@@ -93,6 +95,7 @@ def get_vape_product_category_from_db():
         logger.error(f"프로그램을 종료합니다.")
         exit(1)
 
+
 # --- 1단계: 상품명 정규화 및 특징 추출 함수 ---
 
 def normalize_title_text(text):
@@ -108,14 +111,14 @@ def normalize_title_text(text):
     # "정품", "새상품", "입호흡", "폐호흡" 등의 일반적인 단어 제거 (도메인에 따라 추가/수정)
     # "입호흡", "폐호흡"은 상품 유형을 나타내므로, 별도 필드로 관리하거나, 상품명 정규화 시 제거할 수 있습니다.
     # 여기서는 상품명에서 제거하고, 파일의 카테고리 키("입호흡", "폐호흡")를 활용합니다.
-    common_words_to_remove = ["정품", "새상품", "입호흡", "폐호흡", "액상샵", "특가", "할인", "rs니코틴", "s니코틴", "★", "blvk", "저농도"]
+    common_words_to_remove = ["정품", "새상품", "입호흡", "폐호흡", "액상샵", "특가", "할인" "★", "blvk", "저농도"]
     for word in common_words_to_remove:
         text = text.replace(word, "")
 
     # 특정 브랜드 처리
     text = re.sub(r'juice box', 'juicebox', text)
     text = re.sub(r'플렉스 x', '플렉스x', text)
-    text = re.sub(r'nasty', '네스티', text)
+    text = re.sub(r'nasty', '네��티', text)
     text = re.sub(r'must', '머스트', text)
     text = re.sub(r'vip(?!쥬스)', 'vip쥬스', text)
     text = re.sub(r'알케마스터(?!\s)', '알케마스터 ', text)
@@ -126,7 +129,7 @@ def normalize_title_text(text):
     text = re.sub(r'fuji', '후지', text)
     text = re.sub(r'^new\s+', '', text)  # Remove 'new' prefix
 
-    # 제품명에서 용량 문구 제외 처리
+    # 제품명에서 용량 문구 제외 처���
     text = re.sub(r'(\d+\.?\d*)\s*(mg/ml|mg|ml|%|)', '', text)
     text = re.sub(r' \.', '', text)
     text = re.sub(r' ,', '', text)
@@ -140,83 +143,146 @@ def normalize_title_text(text):
     return text
 
 
-def extract_product_features(title, product_type, url):
-    """`
-    정규화된 상품명에서 브랜드, 제품명, 용량, 기타 세부정보를 추출합니다.
+def normalize_product_grouping_key(normalized_title):
+    """
+    상품명에서 그룹핑 키를 정규화합니다.
+    - 상품명에 모든 특수 문자 제거
+    - 소문자로 변환
+    - 정규화된 상품명에 띄어쓰기 기준으로 분리하여 내림차순 정렬합니다.
+    """
+    # 특수 문자 제거 (알파벳, 숫자, 한글, 공백만 허용)
+    normalized_title = re.sub(r'[^a-zA-Z0-9가-힣\s]', '', normalized_title)
+
+    # 소문자로 변환
+    normalized_title = normalized_title.lower()
+
+    # 띄어쓰기 기준으로 분리 후 내림차순 정렬
+    words = normalized_title.split()
+    sorted_words = sorted(words, reverse=True)
+    return ' '.join(sorted_words)
+
+
+def get_company_id_from_title(title):
+    """
+    상품명에서 회사 ID를 추출합니다.
     """
     normalized_title = normalize_title_text(title)
-
-    brand = None
-    brand_id = 1
-    details = []  # 기타 세부 정보
-
-    # 데이터베이스에서 브랜드 목록 가져오기
     known_brands = get_vape_brands_from_db()
 
-    # 브랜드 추출 (가장 긴 브랜드 이름부터 매칭 시도)
-    # 브랜드 이름이 상품명 중간에 있을 수도 있으므로, 더 정교한 로직이 필요할 수 있습니다.
-    # 여기서는 간단히 앞에서부터 매칭합니다.
-    temp_title_for_brand = normalized_title  # 원본 정규화 제목 복사
-    for b_name, brand_info in sorted(known_brands.items(), key=lambda x: len(x[0]), reverse=True):
-        if temp_title_for_brand.startswith(b_name.lower()):
-            brand = b_name
-            brand_id = brand_info['id']
-            temp_title_for_brand = temp_title_for_brand.replace(b_name.lower(), "").strip()
-            break
+    for brand_name, brand_info in known_brands.items():
+        if brand_name.lower() in normalized_title:
+            return brand_info['id']  # 브랜드 ID 반환
 
-    # 제품 코어명 (브랜드와 용량을 제외한 부분)
-    # 좀 더 정교한 제품명 추출 로직이 필요할 수 있음 (예: 알려진 제품 라인업)
-    product_name_core = re.sub(r'\s+', ' ', temp_title_for_brand).strip()  # 연속 공백 정리
-
-    # 최종 식별키 생성
-    # 브랜드, 제품 코어명, 용량이 모두 있어야 유효한 키로 간주 (엄격한 매칭)
-    # 경우에 따라 용량 없이 (브랜드, 제품 코어명)만으로도 그룹핑할 수 있음 (느슨한 매칭)
-
-    # 기본적인 정규화 (공백, 특수문자 등)
-    if product_name_core:
-        product_name_core = product_name_core.replace("  ", " ").strip()
-        product_name_core = product_name_core.replace("액상", "").strip()  # '액상' 단어 제거
-
-    # 기본 키: 브랜드, 제품 코어명, 용량, 상품 유형 (입호흡/폐호흡)
-    # 이 키를 사용하여 그룹핑합니다.
-    # 브랜드가 None일 경우 "알수없음" 등으로 처리 가능
-    # 제품 코어명이 비어있으면 그룹핑하기 어려움
-
-    # 정제된 제품명 생성: 추출된 요소들을 조합 (예: 펠릭스 라임라임)
-    # 용량이 이름에 포함된 경우가 많으므로, 추출 후 재조합 시 주의
-    refined_name_parts = []
-    if brand:
-        temp_name = product_name_core.replace(brand.lower(), "").strip()
-        refined_name_parts.append(temp_name)
-    else:
-        logger.warning(f"알려진 브랜드가 없습니다. {normalized_title} {product_name_core} {url}")
-        if not brand and " " in product_name_core:
-            brand = product_name_core.split(" ")[0]
-            product_name_core = product_name_core[len(brand):].strip()
-        refined_name_parts.append(product_name_core)
-
-    # 최종 제품 코어명 정제
-    product_name_core_final = " ".join(part for part in refined_name_parts if part).strip()
-    product_name_core_final = re.sub(r'\s+', ' ', product_name_core_final).strip()
-
-    if brand and product_name_core_final:
-        # 기본 그룹핑 키: (브랜드 idx, 브랜드명, 제품명, 제품 타입)
-        grouping_key = (
-            brand_id,
-            brand.lower(),
-            product_name_core_final.lower(),
-            product_type.lower()  # 입호흡/폐호흡 구분
-        )
-        return grouping_key, tuple(sorted(list(set(details))))  # details는 현재 거의 사용 안됨
-
-    return None, tuple(sorted(list(set(details))))  # 필수 정보 부족 시 None 반환
+    logger.warning(f"알려진 브랜드가 없습니다. {normalized_title}")
+    return 1  # 기본값 (알 수 없는 경우)
 
 
-# --- 2단계: 파일 로드 및 상품 데이터 통합 ---
+def compute_levenshtein_similarity(str1, str2):
+    """Levenshtein 유사도(0~1) 반환"""
+    if not str1 or not str2:
+        return 0.0
+    dist = Levenshtein.distance(str1, str2)
+    max_len = max(len(str1), len(str2))
+    if max_len == 0:
+        return 1.0
+    return 1 - dist / max_len
+
+
+def group_products_by_similarity(all_category_products, threshold=0.85):
+    """Levenshtein 유사도 기반 그룹핑 (최적화 버전)"""
+    # 유사도 계산 결과 캐싱
+    similarity_cache = {}
+
+    def cached_similarity(str1, str2):
+        """캐시된 Levenshtein 유사도 계산"""
+        key = (str1, str2) if str1 < str2 else (str2, str1)
+        if key not in similarity_cache:
+            similarity_cache[key] = compute_levenshtein_similarity(str1, str2)
+        return similarity_cache[key]
+
+    def prefilter_candidates(title_i, all_titles, length_ratio=0.3):
+        """빠른 사전 필터링으로 비교 대상 줄이기"""
+        len_i = len(title_i)
+        candidates = []
+        for j, title_j in enumerate(all_titles):
+            # 길이 차이가 크면 건너뛰기
+            len_j = len(title_j)
+            if abs(len_i - len_j) / max(len_i, len_j) > length_ratio:
+                continue
+            # 문자 집합 유사도로 빠르게 필터링
+            set_i, set_j = set(title_i), set(title_j)
+            if len(set_i.intersection(set_j)) / len(set_i.union(set_j)) >= 0.5:
+                candidates.append(j)
+        return candidates
+
+    def process_product(args):
+        i, prod_i, products, used, normalized_titles = args
+        if i in used:
+            return None
+
+        group = [prod_i]
+        title_i = normalized_titles[i]
+        local_used = set()
+
+        # 사전 필터링으로 후보 줄이기
+        candidates = prefilter_candidates(title_i, normalized_titles)
+
+        # 필터링된 후보들만 유사도 계산
+        for j in candidates:
+            if i == j or j in used or j in local_used:
+                continue
+            sim = cached_similarity(title_i, normalized_titles[j])
+            if sim >= threshold:
+                group.append(products[j])
+                local_used.add(j)
+
+        return (i, group, local_used)
+
+    def process_category(args):
+        category, products = args
+        groups = []
+        used = set()
+
+        # 모든 제목 정규화 작업 미리 수행
+        normalized_titles = [normalize_title_text(p.get('title', '')) for p in products]
+
+        # 배치 처리를 위한 크기 계산
+        batch_size = min(1000, len(products))
+        batches = [products[i:i + batch_size] for i in range(0, len(products), batch_size)]
+
+        for batch in batches:
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                futures = [
+                    executor.submit(
+                        process_product,
+                        (products.index(prod_i), prod_i, products, used, normalized_titles)
+                    )
+                    for prod_i in batch if products.index(prod_i) not in used
+                ]
+
+                for future in concurrent.futures.as_completed(futures):
+                    result = future.result()
+                    if result is None:
+                        continue
+                    i, group, local_used = result
+                    used.add(i)
+                    used.update(local_used)
+                    groups.append(group)
+
+        return groups
+
+    all_groups = []
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        results = list(executor.map(process_category, all_category_products.items()))
+        for group_list in results:
+            all_groups.extend(group_list)
+
+    return all_groups
+
 
 def load_and_integrate_products(file_paths):
-    """여러 JSON 파일에서 상품 정보를 로드하고 통합합니다."""
-    all_products_info = []
+    """여러 JSON 파일에서 상품 정보를 로드하고 카테고리별로 그룹화하여 반환합니다."""
+    category_grouped_products = {}
     for file_path in file_paths:
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
@@ -228,61 +294,23 @@ def load_and_integrate_products(file_paths):
                         for product in products:
                             product['source_file'] = file_name_simple
                             product['product_type'] = product_type  # 상품 유형 추가
-                            all_products_info.append(product)
+                            if product_type not in category_grouped_products:
+                                category_grouped_products[product_type] = []
+                            category_grouped_products[product_type].append(product)
         except FileNotFoundError:
             logger.error(f"오류: 파일을 찾을 수 없습니다 - {file_path}")
         except json.JSONDecodeError:
             logger.error(f"오류: JSON 디코딩 실패 - {file_path}")
         except Exception as e:
             logger.error(f"파일 처리 중 오류 발생 ({file_path}): {e}")
-    return all_products_info
-
-
-# --- 3단계: 상품 그룹핑 ---
-
-def group_products(integrated_products):
-    """통합된 상품 리스트를 그룹핑합니다."""
-    grouped_by_key = defaultdict(list)
-
-    for i, product_data in enumerate(integrated_products):
-        title = product_data.get("title", "")
-        product_type = product_data.get("product_type", "알수없음")  # 입호흡/폐호흡
-        url = product_data.get("url", "")
-
-        primary_key, details = extract_product_features(title, product_type, url)
-
-        # 원본 정보와 함께 저장
-        full_product_info = {
-            "original_title": title,
-            "normalized_title_for_feature_extraction": normalize_title_text(title),  # 디버깅용
-            "primary_key": primary_key,
-            "details_from_extraction": details,  # 디버깅용
-            "price": product_data.get("price"),
-            "url": url,
-            "image_url": product_data.get("image_url"),
-            "source_file": product_data.get("source_file"),
-            "product_type": product_type
-        }
-
-        if primary_key:
-            logger.info(f"상품: {title} -> 키: {primary_key}")
-            # 동일 상품 판단 기준: primary_key (브랜드, 제품명, 용량, 타입)
-            # 추가적으로 details (남은 문자열)를 비교하여 더 엄격하게 그룹핑 가능
-            # 여기서는 primary_key가 동일하면 같은 상품으로 간주
-            grouping_final_key = primary_key
-            grouped_by_key[grouping_final_key].append(full_product_info)
-        else:
-            logger.info(f"상품: {title} -> 키 생성 실패 (필수 정보 부족) {url}")
-            # 키 생성 실패 상품은 별도 그룹 또는 처리 로직 추가 가능
-            grouped_by_key[("키_생성_실패", title)].append(full_product_info)
-
-    return grouped_by_key
+    return category_grouped_products
 
 
 # --- 실행 ---
 if __name__ == "__main__":
     # 명령줄 인수 파싱
     import argparse
+
     parser = argparse.ArgumentParser(description='VapeSort - 베이프 상품 정보 정렬 및 그룹화 스크립트')
     parser.add_argument('--env-file', type=str, help='사용할 .env 파일 경로 (예: .env.development)')
     args = parser.parse_args()
@@ -324,161 +352,140 @@ if __name__ == "__main__":
         logger.error("데이터베이스 연결 실패")
         exit()
 
-    all_integrated_products = load_and_integrate_products(existing_file_paths)
+    all_category_products = load_and_integrate_products(existing_file_paths)
 
-    if not all_integrated_products:
+    if not all_category_products:
         logger.error(f"로드된 상품이 없습니다. JSON 파일 내용이나 구조를 확인해주세요.")
         exit()
 
-    logger.info(f"총 {len(all_integrated_products)}개의 상품 정보를 통합했습니다.")
+    logger.info(f"총 {sum(len(products) for products in all_category_products.values())}개의 상품 정보를 통합했습니다.")
 
-    final_grouped_products = group_products(all_integrated_products)
+    # 1차: 유사도 기반 그룹핑
+    final_grouped_products = group_products_by_similarity(all_category_products, threshold=0.95)
 
-    logger.info("--- 최종 그룹핑 결과 ---")
-    group_count = 0
-    single_item_group_count = 0
-    key_make_fail_count = 0
-    product_name = ""
     seller_site_list = get_vape_seller_from_db()
     product_category_list = get_vape_product_category_from_db()
-    for key, products_in_group in final_grouped_products.items():
-        if key[0] == "키_생성_실패":
-            key_make_fail_count += 1
-            continue
-
-        # 키 생성된 상품 vape_products 테이블에 적재 처리
+    for products_in_group in final_grouped_products:
+        # 1차: 상품 정보 저장
         try:
-            # 그룹 내 첫 번째 상품만 저장 (중복 방지)
-            product_name = products_in_group[0]['primary_key'][2]
-            company_id = int(products_in_group[0]['primary_key'][0])
+            visible_product_name = normalize_title_text(products_in_group[0].get('title', ''))
+            company_id = get_company_id_from_title(visible_product_name)
             product_category_id = product_category_list[products_in_group[0]['product_type']]['id']
+            normalize_product_grouping_name = normalize_product_grouping_key(visible_product_name)
 
-            # 데이터베이스에 저장할 데이터 준비
-            product_data = {
-                'companyId': company_id,
-                'productCategoryId': product_category_id,
-                'name': product_name,
-                'imageUrl': products_in_group[0]['image_url']
-            }
+            try:
+                query = "SELECT id, visibleName, productGroupingName FROM vapesite.vape_products WHERE companyId = %s AND productGroupingName = %s AND productCategoryId = %s"
+                product = _db.fetch_one(query, (company_id, normalize_product_grouping_name, product_category_id))
 
-            # 데이터베이스에 저장
-            product_id = _db.insert_data('vapesite.vape_products', product_data)
+                if product:
+                    # 기존 등록된 상품 정보로 처리
+                    logger.info(f"기존 상품 정보 조회 성공: ID={product['id']}, 노출상품명={product['visibleName']}, 그룹상품명={product['productGroupingName']}")
+                    grouping_product_id = product['id']
+                else:
+                    # 신규 상품 정보 등록
+                    try:
+                        product_data = {
+                            'companyId': company_id,
+                            'productCategoryId': product_category_id,
+                            'visibleName': visible_product_name,
+                            'productGroupingName': normalize_product_grouping_name,
+                            'imageUrl': products_in_group[0].get('image_url', '')
+                        }
+
+                        grouping_product_id = _db.insert_data('vapesite.vape_products', product_data)
+                        logger.info(f"기존 상품 정보 조회 없음 상품 저장 처리: 노출상품명={visible_product_name} 그룹상품명={normalize_product_grouping_name}")
+                    except Exception as e:
+                        logger.error(f"신규 상품 정보 저장 중 오류 발생: {e}")
+                        exit()
+            except Exception as select_error:
+                logger.error(f"기존 상품 정보 조회 중 오류 발생: {select_error}")
+                exit()
         except Exception as e:
             error_str = str(e)
 
-            # Duplicate entry 오류인 경우 해당 상품 정보를 select
-            if "Duplicate entry" in error_str:
-                logger.info(f"중복 상품 감지: {product_name}. 기존 상품 정보를 조회합니다.")
-                try:
-                    # 회사 ID와 상품명으로 기존 상품 조회
-                    query = "SELECT id, name FROM vapesite.vape_products WHERE companyId = %s AND name = %s"
-                    product = _db.fetch_one(query, (company_id, product_name))
+            # 다른 종류의 오류인 경우 프로그램 종료
+            logger.error(f"상품 저장 중 오류 발생: {e}")
+            exit()
 
-                    if product:
-                        logger.info(f"기존 상품 정보 조회 성공: ID={product['id']}, 이름={product['name']}")
-                        product_id = product['id']
-                    else:
-                        logger.error(f"중복 오류가 발생했으나 상품을 찾을 수 없습니다: {product_name}")
-                        exit()
-                except Exception as select_error:
-                    logger.error(f"기존 상품 정보 조회 중 오류 발생: {select_error}")
-                    exit()
-            else:
-                # 다른 종류의 오류인 경우 프로그램 종료
-                logger.error(f"상품 저장 중 오류 발생: {e}")
-                exit()
-
-        # vape_price_comparisons 테이블 적재 처리
+        # 2차: 가격 비교 데이터 저장
         for product in products_in_group:
             try:
-                # 판매 사이트 정보 가져오기
-                seller_site_id = seller_site_list[product['source_file']]['id']
+                seller_site_id = seller_site_list.get(product.get('source_file', ''), {}).get('id', 1)
+                seller_url = product.get('url', '')
+                new_price = product.get('price', 0)
+                title = product.get('title', '')
+
                 if not seller_site_id:
-                    logger.error(f"검색된 판매 사이트 정보가 없습니다. {product['source_file']}")
+                    logger.error(f"검색된 판매 사이트 정보가 없습니다. 상품 상세 정보: {json.dumps(product, ensure_ascii=False, indent=2)}")
                     continue
 
-                # 가격 비교 테이블에 저장할 데이터 준비
+                # 판매 사이트별 현재 가격 정보 테이블에 저장할 데이터 준비
                 price_comparison_data = {
-                    'productId': product_id,
+                    'productId': grouping_product_id,
                     'sellerId': seller_site_id,
-                    'sellerUrl': product['url'],
-                    'price': product['price']
+                    'sellerUrl': seller_url,
+                    'price': new_price
                 }
 
                 # 이미 존재하는지 확인
-                query = "SELECT price FROM vapesite.vape_price_comparisons WHERE productId = %s AND sellerId = %s ORDER BY updatedAt DESC LIMIT 1"
-                existing_price = _db.fetch_one(query, (product_id, seller_site_id))
+                query = "SELECT price FROM vapesite.vape_price_comparisons WHERE sellerUrl = %s LIMIT 1"
+                existing_price = _db.fetch_one(query, seller_url)
 
                 if existing_price:
-                    # 기존 데이터가 있는 경우 가격 비교
+                    # 현재 가격 정보가 있는 경우 가격 비교 데이터 처리
                     old_price = existing_price['price']
-                    new_price = product['price']
 
+                    # 가격이 변경된 경우 업데이트
                     if old_price != new_price:
-                        # 가격이 변경된 경우 업데이트
+                        # 판매 사이트 현재 가격 정보 업데이트
                         _db.update_data(
                             'vapesite.vape_price_comparisons',
-                            {'price': new_price, 'sellerUrl': product['url']},
+                            {'price': new_price, 'sellerUrl': seller_url},
                             'productId = %s AND sellerId = %s',
-                            (product_id, seller_site_id)
+                            (grouping_product_id, seller_site_id)
                         )
-                        logger.info(f"가격 변동 감지: {product['original_title']} - {old_price} -> {new_price}")
 
-                        # 가격 변동 이력 저장
+                        query = "SELECT newPrice FROM vapesite.vape_price_history WHERE productId = %s AND sellerId = %s ORDER BY createdAt DESC LIMIT 1"
+                        existing_price_history = _db.fetch_one(query, (grouping_product_id, seller_site_id))
+                        if existing_price_history and existing_price_history['newPrice'] == new_price:
+                            logger.info(f"가격 변동 이력 존재 하여 저장 제외: {json.dumps(product, ensure_ascii=False, indent=2)}")
+                            continue
+
+                        logger.info(f"가격 변동 감지: {title} - {old_price} -> {new_price}")
+
                         price_history_data = {
-                            'productId': product_id,
+                            'productId': grouping_product_id,
                             'sellerId': seller_site_id,
                             'oldPrice': old_price,
                             'newPrice': new_price,
                             'priceDifference': new_price - old_price,
-                            'percentageChange': (new_price - old_price) / old_price * 100,
+                            'percentageChange': (new_price - old_price) / old_price * 100 if old_price else 0,
                         }
                         try:
                             _db.insert_data('vapesite.vape_price_history', price_history_data)
                         except Exception as e:
                             error_str = str(e)
-
-                            # Duplicate entry 오류인 경우 해당 상품 정보를 select
                             if "Duplicate entry" in error_str:
                                 continue
                             else:
                                 raise e
-
-                        logger.info(f"가격 변동 이력 저장 완료: {product['original_title']}")
+                        logger.info(f"가격 변동 이력 저장 완료: {title}")
                 else:
-                    # 새로운 데이터 삽입
                     comparison_id = _db.insert_data('vapesite.vape_price_comparisons', price_comparison_data)
-                    logger.info(f"새 가격 비교 데이터 저장 완료: {product['original_title']} - {product['price']}")
-
-                    # 신규 등록 이력 저장
+                    logger.info(f"새 가격 비교 데이터 저장 완료: {title} - {new_price}")
                     price_history_data = {
-                        'productId': product_id,
+                        'productId': grouping_product_id,
                         'sellerId': seller_site_id,
-                        'oldPrice': 0,  # 신규 등록이므로 이전 가격은 0으로 설정
-                        'newPrice': product['price']
+                        'oldPrice': 0,
+                        'newPrice': new_price
                     }
                     _db.insert_data('vapesite.vape_price_history', price_history_data)
-                    logger.info(f"신규 가격 이력 저장 완료: {product['original_title']}")
-
+                    logger.info(f"신규 가격 이력 저장 완료: {title}")
             except Exception as e:
-                logger.error(f"가격 비교 데이터 처리 중 오류 발생: {e}")
+                logger.error(f"가격 비교 데이터 처리 중 오류 발생: {json.dumps(product, ensure_ascii=False, indent=2)}")
                 exit()
 
-        if len(products_in_group) > 1:  # 2개 이상 같은 상품으로 판단된 경우만 출력
-            group_count += 1
-            logger.info(f"그룹 {group_count} (식별키: {key}) - 총 {len(products_in_group)}개 상품")
-            for product in products_in_group:
-                logger.info(f"  - {product['original_title']} (가격: {product['price']}, 출처: {product['source_file']}, URL: {product['url']}), IMG: {product['image_url']}")
-        else:
-            single_item_group_count += 1
-
-    logger.info(f"--- 요약 ---")
-    logger.info(f"총 {group_count}개의 그룹이 생성되었습니다 (2개 이상 동일 상품).")
-    logger.info(f"총 {single_item_group_count}개의 상품이 단독으로 분류되었습니다.")
-    logger.info(f"총 {key_make_fail_count}개의 상품이 키 생성에 실패하였습니다.")
-
-    logger.info(f"--- final_grouped_products 상세 ---")
+    logger.info(f"--- 그룹 상세 ---")
     logger.info(f"그룹 수: {len(final_grouped_products)}")
-    logger.info(f"그룹 키 목록:")
-    for key in final_grouped_products.keys():
-        logger.info(f"- {key}: {len(final_grouped_products[key])}개 상품")
+    for idx, group in enumerate(final_grouped_products):
+        logger.info(f"- 그룹 {idx + 1}: {len(group)}개 상품")
