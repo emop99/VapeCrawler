@@ -119,7 +119,7 @@ def normalize_title_text(text):
     # 특정 브랜드 처리
     text = re.sub(r'juice box', 'juicebox', text)
     text = re.sub(r'플렉스 x', '플렉스x', text)
-    text = re.sub(r'nasty', '네��티', text)
+    text = re.sub(r'nasty', '네스티', text)
     text = re.sub(r'must', '머스트', text)
     text = re.sub(r'vip(?!쥬스)', 'vip쥬스', text)
     text = re.sub(r'알케마스터(?!\s)', '알케마스터 ', text)
@@ -130,7 +130,7 @@ def normalize_title_text(text):
     text = re.sub(r'fuji', '후지', text)
     text = re.sub(r'^new\s+', '', text)  # Remove 'new' prefix
 
-    # 제품명에서 용량 문구 제외 처���
+    # 제품명에서 용량 문구 제외 처리
     text = re.sub(r'(\d+\.?\d*)\s*(mg/ml|mg|ml|%|)', '', text)
     text = re.sub(r' \.', '', text)
     text = re.sub(r' ,', '', text)
@@ -158,9 +158,20 @@ def normalize_product_grouping_key(normalized_title):
     # 소문자로 변환
     normalized_title = normalized_title.lower()
 
+    # 모든 공백 제거
+    normalized_title = re.sub(r'\s+', ' ', normalized_title).strip()
+
     # PyKoSpacing을 이용한 자동 띄어쓰기 적용
     spacing = Spacing()
     normalized_title = spacing(normalized_title)
+
+    # 띄어쓰기 기준으로 분리 후 내림차순 정렬
+    words = normalized_title.split()
+    sorted_words = sorted(words, reverse=True)
+    normalized_title = ' '.join(sorted_words)
+
+    # 모든 공백 제거
+    normalized_title = re.sub(r'\s+', ' ', normalized_title).strip()
 
     # 띄어쓰기 기준으로 분리 후 내림차순 정렬
     words = normalized_title.split()
