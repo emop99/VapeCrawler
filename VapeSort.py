@@ -5,6 +5,7 @@ import os
 from module.MariaDBConnector import MariaDBConnector
 import Levenshtein
 import concurrent.futures
+from pykospacing import Spacing  # PyKoSpacing 라이브러리 추가
 
 """
 VapeSort.py - 베이프 상품 정보 정렬 및 그룹화 스크립트
@@ -148,6 +149,7 @@ def normalize_product_grouping_key(normalized_title):
     상품명에서 그룹핑 키를 정규화합니다.
     - 상품명에 모든 특수 문자 제거
     - 소문자로 변환
+    - PyKoSpacing을 이용하여 자동 띄어쓰기 적용
     - 정규화된 상품명에 띄어쓰기 기준으로 분리하여 내림차순 정렬합니다.
     """
     # 특수 문자 제거 (알파벳, 숫자, 한글, 공백만 허용)
@@ -155,6 +157,10 @@ def normalize_product_grouping_key(normalized_title):
 
     # 소문자로 변환
     normalized_title = normalized_title.lower()
+
+    # PyKoSpacing을 이용한 자동 띄어쓰기 적용
+    spacing = Spacing()
+    normalized_title = spacing(normalized_title)
 
     # 띄어쓰기 기준으로 분리 후 내림차순 정렬
     words = normalized_title.split()
@@ -487,5 +493,3 @@ if __name__ == "__main__":
 
     logger.info(f"--- 그룹 상세 ---")
     logger.info(f"그룹 수: {len(final_grouped_products)}")
-    for idx, group in enumerate(final_grouped_products):
-        logger.info(f"- 그룹 {idx + 1}: {len(group)}개 상품")
