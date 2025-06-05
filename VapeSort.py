@@ -445,10 +445,11 @@ if __name__ == "__main__":
                 }
 
                 # 이미 존재하는지 확인
-                query = "SELECT price FROM vapesite.vape_price_comparisons WHERE sellerUrl = %s LIMIT 1"
-                existing_price = _db.fetch_one(query, seller_url)
+                query = "SELECT id, price FROM vapesite.vape_price_comparisons WHERE productId = %s AND sellerUrl = %s AND sellerId = %s LIMIT 1"
+                existing_price = _db.fetch_one(query, [grouping_product_id, seller_url, seller_site_id])
 
                 if existing_price:
+                    price_comparison_id = existing_price['id']
                     # 현재 가격 정보가 있는 경우 가격 비교 데이터 처리
                     old_price = existing_price['price']
 
@@ -458,8 +459,8 @@ if __name__ == "__main__":
                         _db.update_data(
                             'vapesite.vape_price_comparisons',
                             {'price': new_price, 'sellerUrl': seller_url},
-                            'productId = %s AND sellerId = %s',
-                            (grouping_product_id, seller_site_id)
+                            'id = %s',
+                            (price_comparison_id,)
                         )
 
                         query = "SELECT newPrice FROM vapesite.vape_price_history WHERE productId = %s AND sellerId = %s ORDER BY createdAt DESC LIMIT 1"
@@ -499,7 +500,8 @@ if __name__ == "__main__":
                     _db.insert_data('vapesite.vape_price_history', price_history_data)
                     logger.info(f"신규 가격 이력 저장 완료: {title}")
             except Exception as e:
-                logger.error(f"가격 비교 데이터 처리 중 오류 발생: {json.dumps(product, ensure_ascii=False, indent=2)}")
+                logger.error(f"가격 비교 데이터 저장 중 오류 발생: {e}")
+                logger.error(f"상품 데이터: {json.dumps(product, ensure_ascii=False, indent=2)}")
                 exit()
 
     logger.info(f"--- 그룹 상세 ---")
