@@ -7,6 +7,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
+# 로깅 모듈 가져오기
+from module.elasticsearch_logger import LoggerFactory
 
 
 class BaseCrawler:
@@ -15,7 +17,7 @@ class BaseCrawler:
     Provides common functionality for web crawling using Selenium Chrome driver.
     """
 
-    def __init__(self, site_name, headless=True, log_level=logging.INFO):
+    def __init__(self, site_name, headless=True, log_level=logging.INFO, env_file='.env'):
         """
         Initialize the base crawler with Selenium Chrome driver.
 
@@ -23,36 +25,28 @@ class BaseCrawler:
             site_name (str): Name of the site being crawled
             headless (bool): Whether to run Chrome in headless mode
             log_level (int): Logging level
+            env_file (str, optional): 환경 변수 파일 경로 (기본값: None)
         """
         self.site_name = site_name
         self.headless = headless  # Store headless setting as instance attribute
-        self.setup_logging(log_level)
+        self.env_file = env_file  # 환경 변수 파일 경로 저장
+        self.log_level = log_level
+        self.setup_logging()
         self.logger.info(f"Initializing crawler for {site_name}")
         self.driver = self.setup_driver(headless)
 
-    def setup_logging(self, log_level):
-        """Set up logging configuration."""
-        self.logger = logging.getLogger(f"crawler.{self.site_name}")
-        self.logger.setLevel(log_level)
-
-        # Create handlers if they don't exist
-        if not self.logger.handlers:
-            # Create file handler
-            file_handler = logging.FileHandler('log/vape_crawler.log', encoding='utf-8')
-            file_handler.setLevel(log_level)
-
-            # Create console handler
-            console_handler = logging.StreamHandler()
-            console_handler.setLevel(log_level)
-
-            # Create formatter
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            file_handler.setFormatter(formatter)
-            console_handler.setFormatter(formatter)
-
-            # Add handlers to logger
-            self.logger.addHandler(file_handler)
-            self.logger.addHandler(console_handler)
+    def setup_logging(self):
+        """Set up logging configuration using class-based logger."""
+        # 새로운 클래스 기반 로거 사용
+        logger_instance = LoggerFactory.create_elasticsearch_logger(
+            f"crawler.{self.site_name}",
+            f"VapeCrawler-{self.site_name}",
+            log_file='log/vape_crawler.log',
+            log_level=self.log_level,
+            env_file=self.env_file
+        )
+        self.logger = logger_instance.get_logger()
+        return self.logger
 
     def setup_driver(self, headless):
         """

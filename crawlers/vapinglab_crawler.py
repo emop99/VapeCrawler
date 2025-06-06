@@ -18,15 +18,16 @@ class VapingLabCrawler(BaseCrawler):
         "폐호흡": "untitled-4",
     }
 
-    def __init__(self, headless=True, category="입호흡"):
+    def __init__(self, headless=True, category="입호흡", env_file='.env'):
         """
         베이핑랩 크롤러를 초기화합니다.
 
         Args:
             headless (bool): 크롬을 헤드리스 모드로 실행할지 여부
             category (str): 크롤링할 카테고리 (입호흡, 폐호흡)
+            env_file (str): 환경 변수 파일 경로
         """
-        super().__init__("vapinglab", headless)
+        super().__init__("vapinglab", headless, env_file=env_file)
         self.base_url = "https://vapinglab.co.kr"
 
         # 카테고리 URL 경로 가져오기 (없으면 기본값 사용)
@@ -201,7 +202,7 @@ class VapingLabCrawler(BaseCrawler):
             if category != self.category:
                 self.logger.info(f"카테고리 '{category}' 크롤링을 위한 새 인스턴스 생성")
                 # 같은 headless 설정으로 새 인스턴스 생성
-                crawler = VapingLabCrawler(headless=self.headless, category=category)
+                crawler = VapingLabCrawler(headless=self.headless, category=category, env_file=self.env_file)
                 try:
                     category_products = crawler.get_products()
                     results[category] = category_products

@@ -2,10 +2,13 @@ import json
 import logging
 import re
 import os
+import argparse
 from module.MariaDBConnector import MariaDBConnector
 import Levenshtein
 import concurrent.futures
 from pykospacing import Spacing  # PyKoSpacing 라이브러리 추가
+# 로깅 모듈 가져오기
+from module.elasticsearch_logger import LoggerFactory
 
 """
 VapeSort.py - 베이프 상품 정보 정렬 및 그룹화 스크립트
@@ -16,17 +19,27 @@ _db = None
 # 브랜드 목록 캐시 (메모리 캐싱)
 _brand_cache = None
 
-# 로깅 설정
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('log/vape_sort.log', encoding='utf-8'),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger('vape_sort')
+# 로깅 디렉토리 생성
+os.makedirs('log', exist_ok=True)
 
+# 명령줄 인수 파싱 (로깅 설정을 위해 미리 파싱)
+def parse_args():
+    parser = argparse.ArgumentParser(description='VapeSort - 베이프 상품 정보 정렬 및 그룹화 스크립트')
+    parser.add_argument('--env-file', type=str, help='사용할 .env 파일 경로 (예: .env.development)')
+    return parser.parse_known_args()[0]
+
+# 환경 변수 파일 경로 가져오기
+pre_args = parse_args()
+env_file = getattr(pre_args, 'env_file', '.env')
+
+# 로깅 설정 - 새로운 클래스 기반 로거 사용
+logger_instance = LoggerFactory.create_elasticsearch_logger(
+    'vape_sort',
+    'VapeSort',
+    log_file='log/vape_sort.log',
+    env_file=env_file
+)
+logger = logger_instance.get_logger()
 
 def get_vape_brands_from_db():
     global _brand_cache, _db

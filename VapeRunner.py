@@ -12,20 +12,34 @@ import subprocess
 import glob
 import time
 from datetime import datetime
+import argparse
 
-# 로깅 설정
+# 로깅 모듈 가져오기
+from module.elasticsearch_logger import LoggerFactory
+
+# 로깅 디렉토리 생성
 os.makedirs('log', exist_ok=True)
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('log/vape_runner.log', encoding='utf-8'),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger('vape_runner')
 
-def run_vape_crawler(env_file=None):
+# 명령줄 인수 파싱 (로깅 설정을 위해 미리 파싱)
+def parse_args():
+    parser = argparse.ArgumentParser(description='VapeRunner - 전자담배 제품 크롤링 및 정렬 자동화 스크립트')
+    parser.add_argument('--env-file', type=str, help='사용할 .env 파일 경로 (예: .env.development)')
+    return parser.parse_known_args()[0]
+
+# 환경 변수 파일 경로 가져오기
+pre_args = parse_args()
+env_file = getattr(pre_args, 'env_file', '.env')
+
+# 로깅 설정 - 새로운 클래스 기반 로거 사용
+logger_instance = LoggerFactory.create_elasticsearch_logger(
+    'vape_runner',
+    'VapeRunner',
+    log_file='log/vape_runner.log',
+    env_file=env_file
+)
+logger = logger_instance.get_logger()
+
+def run_vape_crawler(env_file='.env'):
     """
     VapeCrawler를 실행합니다.
 
@@ -49,7 +63,7 @@ def run_vape_crawler(env_file=None):
         logger.error(f"VapeCrawler 실행 중 예상치 못한 오류 발생: {e}")
         return False
 
-def run_vape_sort(env_file=None):
+def run_vape_sort(env_file='.env'):
     """
     VapeSort를 실행합니다.
 
@@ -155,7 +169,7 @@ def main():
         logger.info(f"인터벌 모드 활성화: {interval}분마다 실행")
         try:
             while True:
-                success = run_process()
+                run_process()
                 logger.info(f"{interval}분 후 다음 실행 예정 (현재 시간: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')})")
                 # 다음 실행까지 대기 (분 단위를 초 단위로 변환)
                 time.sleep(interval * 60)

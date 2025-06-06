@@ -9,25 +9,36 @@ import argparse
 import json
 import logging
 import os
-import sys
 import time
 import threading
 from datetime import datetime
 
 # 크롤러 가져오기
 from crawlers import VapeMonsterCrawler, VapingLabCrawler, Juice24Crawler, Juice99Crawler, JuiceboxCrawler, JuiceshopCrawler, SkyVapeCrawler
+# 로깅 모듈 가져오기
+from module.elasticsearch_logger import LoggerFactory
 
-# 로깅 설정
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('log/vape_crawler.log', encoding='utf-8'),
-        logging.StreamHandler()
-    ]
+# 로깅 디렉토리 생성
+os.makedirs('log', exist_ok=True)
+
+# 명령줄 인수 파싱 (로깅 설정을 위해 미리 파싱)
+def parse_args():
+    parser = argparse.ArgumentParser(description='VapeCrawler - A modular web crawler for vape products')
+    parser.add_argument('--env-file', type=str, help='Path to the .env file to use (e.g., .env.development)')
+    return parser.parse_known_args()[0]
+
+# 환경 변수 파일 경로 가져오기
+pre_args = parse_args()
+env_file = getattr(pre_args, 'env_file', '.env')
+
+# 로깅 설정 - 새로운 클래스 기반 로거 사용
+logger_instance = LoggerFactory.create_elasticsearch_logger(
+    'vape_crawler',
+    'VapeCrawler',
+    log_file='log/vape_crawler.log',
+    env_file=env_file
 )
-logger = logging.getLogger('vape_crawler')
-
+logger = logger_instance.get_logger()
 
 def save_results(results, site_name):
     """
@@ -41,7 +52,7 @@ def save_results(results, site_name):
     os.makedirs('results', exist_ok=True)
 
     # site_name 한글화 처리
-    siteMap = {
+    site_map = {
         "vapemonster": "베이프몬스터(베몬)",
         "vapinglab": "김성유베이핑연구소(김성유)",
         "juice24": "액상24",
@@ -53,7 +64,7 @@ def save_results(results, site_name):
 
     # 타임스탬프가 포함된 파일 이름 생성
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    filename = f"results/{siteMap[site_name]}_{timestamp}.json"
+    filename = f"results/{site_map[site_name]}_{timestamp}.json"
 
     # 결과를 파일에 저장
     with open(filename, 'w', encoding='utf-8') as f:
@@ -62,7 +73,7 @@ def save_results(results, site_name):
     logger.info(f"Results saved to {filename}")
 
 
-def run_crawler(crawler_class, keywords, headless, categories=None):
+def run_crawler(crawler_class, keywords, headless, categories=None, env_file='.env'):
     """
     크롤러를 실행하고 결과를 저장합니다.
     스레드에서 실행할 수 있도록 설계되었습니다.
@@ -72,6 +83,7 @@ def run_crawler(crawler_class, keywords, headless, categories=None):
         keywords (list): 검색할 키워드 목록
         headless (bool): 헤드리스 모드로 실행할지 여부
         categories (list): 크롤링할 카테고리 목록 (VapeMonsterCrawler, VapingLabCrawler, Juice24Crawler, Juice99Crawler, JuiceboxCrawler, JuiceshopCrawler, SkyVapeCrawler에 적용)
+        env_file (str): 환경 변수 파일 경로 (기본값: None)
     """
     crawler = None
     try:
@@ -81,7 +93,7 @@ def run_crawler(crawler_class, keywords, headless, categories=None):
             # 첫 번째 카테고리로 인스턴스 생성
             first_category = categories[0]
             logger.info(f"Creating {crawler_class.__name__} with initial category: {first_category}")
-            crawler = crawler_class(headless=headless, category=first_category)
+            crawler = crawler_class(headless=headless, category=first_category, env_file=env_file)
             logger.info(f"Running {crawler.site_name} crawler with categories: {categories}")
 
             # 크롤러 실행 (모든 카테고리 전달)
@@ -90,7 +102,7 @@ def run_crawler(crawler_class, keywords, headless, categories=None):
             end_time = time.time()
         else:
             # 다른 크롤러 또는 카테고리가 지정되지 않은 경우
-            crawler = crawler_class(headless=headless)
+            crawler = crawler_class(headless=headless, env_file=env_file)
             logger.info(f"Running {crawler.site_name} crawler")
 
             # 크롤러 실행
@@ -131,7 +143,6 @@ def main():
     args = parser.parse_args()
 
     # 크롤링할 사이트 결정
-    sites_to_crawl = []
     if 'all' in args.sites:
         sites_to_crawl = ['vapemonster', 'vapinglab', 'juice24', 'juice99', 'juicebox', 'juiceshop', 'skyvape']
     else:
@@ -166,13 +177,13 @@ def main():
             if (site == 'vapemonster' or site == 'vapinglab' or site == 'juice24' or site == 'juice99' or site == 'juicebox' or site == 'juiceshop') and args.categories:
                 thread = threading.Thread(
                     target=run_crawler,
-                    args=(crawler_map[site], args.keywords, not args.no_headless, args.categories),
+                    args=(crawler_map[site], args.keywords, not args.no_headless, args.categories, args.env_file),
                     name=f"{site}_thread"
                 )
             else:
                 thread = threading.Thread(
                     target=run_crawler,
-                    args=(crawler_map[site], args.keywords, not args.no_headless),
+                    args=(crawler_map[site], args.keywords, not args.no_headless, None, args.env_file),
                     name=f"{site}_thread"
                 )
 
