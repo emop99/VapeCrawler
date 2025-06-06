@@ -14,7 +14,7 @@ import threading
 from datetime import datetime
 
 # 크롤러 가져오기
-from crawlers import VapeMonsterCrawler, VapingLabCrawler, Juice24Crawler, Juice99Crawler, JuiceboxCrawler, JuiceshopCrawler, SkyVapeCrawler
+from crawlers import VapeMonsterCrawler, VapingLabCrawler, Juice24Crawler, Juice99Crawler, JuiceboxCrawler, JuiceshopCrawler, SkyVapeCrawler, KimiVapeCrawler
 # 로깅 모듈 가져오기
 from module.elasticsearch_logger import LoggerFactory
 
@@ -60,6 +60,7 @@ def save_results(results, site_name):
         "juicebox": "쥬스박스",
         "juiceshop": "액상샵",
         "skyvape": "스카이베이프",
+        "kimivape": "키미베이프",
     }
 
     # 타임스탬프가 포함된 파일 이름 생성
@@ -82,13 +83,13 @@ def run_crawler(crawler_class, keywords, headless, categories=None, env_file='.e
         crawler_class: 인스턴스화할 크롤러 클래스
         keywords (list): 검색할 키워드 목록
         headless (bool): 헤드리스 모드로 실행할지 여부
-        categories (list): 크롤링할 카테고리 목록 (VapeMonsterCrawler, VapingLabCrawler, Juice24Crawler, Juice99Crawler, JuiceboxCrawler, JuiceshopCrawler, SkyVapeCrawler에 적용)
+        categories (list): 크롤링할 카테고리 목록 (VapeMonsterCrawler, VapingLabCrawler, Juice24Crawler, Juice99Crawler, JuiceboxCrawler, JuiceshopCrawler, SkyVapeCrawler, KimiVapeCrawler에 적용)
         env_file (str): 환경 변수 파일 경로 (기본값: None)
     """
     crawler = None
     try:
-        # VapeMonsterCrawler, VapingLabCrawler, Juice24Crawler, Juice99Crawler, JuiceboxCrawler, JuiceshopCrawler, SkyVapeCrawler인 경우 카테고리 처리
-        if (crawler_class in [VapeMonsterCrawler, VapingLabCrawler, Juice24Crawler, Juice99Crawler, JuiceboxCrawler, JuiceshopCrawler, SkyVapeCrawler]) and categories and len(
+        # VapeMonsterCrawler, VapingLabCrawler, Juice24Crawler, Juice99Crawler, JuiceboxCrawler, JuiceshopCrawler, SkyVapeCrawler, KimiVapeCrawler인 경우 카테고리 처리
+        if (crawler_class in [VapeMonsterCrawler, VapingLabCrawler, Juice24Crawler, Juice99Crawler, JuiceboxCrawler, JuiceshopCrawler, SkyVapeCrawler, KimiVapeCrawler]) and categories and len(
                 categories) > 0:
             # 첫 번째 카테고리로 인스턴스 생성
             first_category = categories[0]
@@ -130,12 +131,12 @@ def main():
     """스크립트의 주요 진입점."""
     # 명령줄 인수 파싱
     parser = argparse.ArgumentParser(description='VapeCrawler - A modular web crawler for vape products')
-    parser.add_argument('--sites', nargs='+', choices=['vapemonster', 'vapinglab', 'juice24', 'juice99', 'juicebox', 'juiceshop', 'skyvape', 'all'], default=['all'],
+    parser.add_argument('--sites', nargs='+', choices=['vapemonster', 'vapinglab', 'juice24', 'juice99', 'juicebox', 'juiceshop', 'skyvape', 'kimivape', 'all'], default=['all'],
                         help='Sites to crawl (default: all)')
     parser.add_argument('--keywords', nargs='+', default=['vape'],
                         help='Keywords to search for (default: vape)')
     parser.add_argument('--categories', nargs='+', choices=['입호흡', '폐호흡'],
-                        help='Categories to crawl (VapeMonster: 입호흡, 폐호흡 / VapingLab: 입호흡, 폐호흡 / Juice24: 입호흡, 폐호흡 / Juice99: 입호흡, 폐호흡 / Juicebox: 입호흡, 폐호흡 / Juiceshop: 입호흡, 폐호흡 / SkyVape: 입호흡, 폐호흡)')
+                        help='Categories to crawl (VapeMonster: 입호흡, 폐호흡 / VapingLab: 입호흡, 폐호흡 / Juice24: 입호흡, 폐호흡 / Juice99: 입호흡, 폐호흡 / Juicebox: 입호흡, 폐호흡 / Juiceshop: 입호흡, 폐호흡 / SkyVape: 입호흡, 폐호흡 / KimiVape: 입호흡, 폐호흡)')
     parser.add_argument('--no-headless', action='store_true',
                         help='Run browsers in non-headless mode (visible)')
     parser.add_argument('--env-file', type=str,
@@ -144,7 +145,7 @@ def main():
 
     # 크롤링할 사이트 결정
     if 'all' in args.sites:
-        sites_to_crawl = ['vapemonster', 'vapinglab', 'juice24', 'juice99', 'juicebox', 'juiceshop', 'skyvape']
+        sites_to_crawl = ['vapemonster', 'vapinglab', 'juice24', 'juice99', 'juicebox', 'juiceshop', 'skyvape', 'kimivape']
     else:
         sites_to_crawl = args.sites
 
@@ -156,6 +157,7 @@ def main():
         'juice99': Juice99Crawler,
         'juicebox': JuiceboxCrawler,
         'juiceshop': JuiceshopCrawler,
+        'kimivape': KimiVapeCrawler,
         # 'skyvape': SkyVapeCrawler //TODO 로그인 프로세스 필요
     }
 
@@ -174,7 +176,7 @@ def main():
     for site in sites_to_crawl:
         if site in crawler_map:
             # 스레드 생성
-            if (site == 'vapemonster' or site == 'vapinglab' or site == 'juice24' or site == 'juice99' or site == 'juicebox' or site == 'juiceshop') and args.categories:
+            if (site == 'vapemonster' or site == 'vapinglab' or site == 'juice24' or site == 'juice99' or site == 'juicebox' or site == 'juiceshop' or site == 'kimivape') and args.categories:
                 thread = threading.Thread(
                     target=run_crawler,
                     args=(crawler_map[site], args.keywords, not args.no_headless, args.categories, args.env_file),

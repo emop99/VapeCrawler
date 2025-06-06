@@ -11,5 +11,6 @@ from .juice99_crawler import Juice99Crawler
 from .juicebox_crawler import JuiceboxCrawler
 from .juiceshop_crawler import JuiceshopCrawler
 from .skyvape_crawler import SkyVapeCrawler
+from .kimivape_crawler import KimiVapeCrawler
 
-__all__ = ['BaseCrawler', 'VapeMonsterCrawler', 'VapingLabCrawler', 'Juice24Crawler', 'Juice99Crawler', 'JuiceboxCrawler', 'JuiceshopCrawler', 'SkyVapeCrawler']
+__all__ = ['BaseCrawler', 'VapeMonsterCrawler', 'VapingLabCrawler', 'Juice24Crawler', 'Juice99Crawler', 'JuiceboxCrawler', 'JuiceshopCrawler', 'SkyVapeCrawler', 'KimiVapeCrawler']
