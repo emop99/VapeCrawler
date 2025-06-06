@@ -89,6 +89,8 @@ class JuiceboxCrawler(BaseCrawler):
                         self.logger.warning(f"제품 제목 요소를 찾을 수 없습니다: {str(e)}")
                         title = "N/A"
 
+                    title = title.replace("juicebox", "").replace("JUICE BOX", "").strip()
+
                     # 제품 설명 (없으면 빈 문자열)
                     detail_comment = ""
 

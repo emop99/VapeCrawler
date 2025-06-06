@@ -76,7 +76,7 @@ class KimiVapeCrawler(BaseCrawler):
                     # 제품 제목 추출
                     try:
                         title_element = element.find_element(By.CSS_SELECTOR, ".description .name")
-                        title = title_element.text.replace("| 키미베이프", "").strip() if title_element else "N/A"
+                        title = title_element.text.replace("키미베이프", "").replace("ㅣ", "").replace("|", "").replace("/", "").replace("액상", "").strip() if title_element else "N/A"
                     except Exception as e:
                         self.logger.warning(f"제품 제목 요소를 찾을 수 없습니다: {str(e)}")
                         title = "N/A"
