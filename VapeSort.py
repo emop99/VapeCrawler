@@ -203,7 +203,7 @@ def get_company_id_from_title(title):
         if brand_name.lower() in normalized_title:
             return brand_info['id']  # 브랜드 ID 반환
 
-    logger.warning(f"알려진 브랜드가 없습니다. {normalized_title}")
+    logger.warning(f"알려진 제조사가 없습니다. {normalized_title} ")
     return 1  # 기본값 (알 수 없는 경우)
 
 
