@@ -137,6 +137,7 @@ def normalize_title_text(text):
     text = re.sub(r'vip(?!쥬스)', 'vip쥬스', text)
     text = re.sub(r'알케마스터(?!\s)', '알케마스터 ', text)
     text = re.sub(r'레인보우 리퀴드', '레인보우리퀴드', text)
+    text = re.sub(r'더 블랙', '더블랙', text)
 
     # 제품명 처리
     text = re.sub(r'mint', '민트', text)
@@ -404,8 +405,23 @@ if __name__ == "__main__":
             normalize_product_grouping_name = normalize_product_grouping_key(visible_product_name)
 
             try:
-                query = "SELECT id, visibleName, productGroupingName FROM vapesite.vape_products WHERE companyId = %s AND productGroupingName = %s AND productCategoryId = %s"
-                product = _db.fetch_one(query, (company_id, normalize_product_grouping_name, product_category_id))
+                # 기존 등록된 가격 비교 상품 주소인지 확인
+                grouping_product_id = None
+                for product in products_in_group:
+                    seller_url = product.get('url', '')
+                    query = "SELECT productId, sellerId FROM vapesite.vape_price_comparisons WHERE sellerUrl = %s LIMIT 1"
+                    existing_product = _db.fetch_one(query, [seller_url])
+                    if existing_product:
+                        grouping_product_id = existing_product['productId']
+                        logger.info(f"기존 가격 비교 상품 주소로 처리: {seller_url} -> 상품 ID={grouping_product_id}")
+                        break
+
+                if grouping_product_id:
+                    query = "SELECT id, visibleName, productGroupingName FROM vapesite.vape_products WHERE id = %s"
+                    product = _db.fetch_one(query, [grouping_product_id])
+                else:
+                    query = "SELECT id, visibleName, productGroupingName FROM vapesite.vape_products WHERE companyId = %s AND productGroupingName = %s AND productCategoryId = %s"
+                    product = _db.fetch_one(query, (company_id, normalize_product_grouping_name, product_category_id))
 
                 if product:
                     # 기존 등록된 상품 정보로 처리
@@ -414,12 +430,21 @@ if __name__ == "__main__":
                 else:
                     # 신규 상품 정보 등록
                     try:
+                        image_url = products_in_group[0].get('image_url', '')
+
+                        # 이미지 URL이 없는 경우 있는 URL 검사
+                        if not image_url:
+                            for product in products_in_group:
+                                if product.get('image_url'):
+                                    image_url = product['image_url']
+                                    break
+
                         product_data = {
                             'companyId': company_id,
                             'productCategoryId': product_category_id,
                             'visibleName': visible_product_name,
                             'productGroupingName': normalize_product_grouping_name,
-                            'imageUrl': products_in_group[0].get('image_url', '')
+                            'imageUrl': image_url
                         }
 
                         grouping_product_id = _db.insert_data('vapesite.vape_products', product_data)
