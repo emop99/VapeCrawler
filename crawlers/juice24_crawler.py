@@ -13,8 +13,8 @@ class Juice24Crawler(BaseCrawler):
 
     # 카테고리 URL 매핑
     CATEGORIES = {
-        "입호흡": "%EC%9E%85%ED%98%B8%ED%9D%A1-%EC%95%A1%EC%83%81/48",
-        "폐호흡": "%ED%8F%90%ED%98%B8%ED%9D%A1-%EC%95%A1%EC%83%81/49",
+        "입호흡": 48,
+        "폐호흡": 49,
     }
 
     def __init__(self, headless=True, category="입호흡", env_file='.env'):
@@ -30,10 +30,10 @@ class Juice24Crawler(BaseCrawler):
         self.base_url = "https://juice24.kr"
 
         # 카테고리 URL 경로 가져오기 (없으면 기본값 사용)
-        category_path = self.CATEGORIES.get(category, self.CATEGORIES["입호흡"])
+        category_no = self.CATEGORIES.get(category, self.CATEGORIES["입호흡"])
         self.category = category
-        self.category_path = category_path
-        self.category_url = f"{self.base_url}/category/{category_path}/"
+        self.category_path = f"/product/list.html?cate_no={category_no}"
+        self.category_url = f"{self.base_url}/product/list.html?cate_no={category_no}/"
 
     def get_products(self):
         """
@@ -62,7 +62,7 @@ class Juice24Crawler(BaseCrawler):
 
             # 모든 제품 요소 찾기 (주스24 사이트 구조에 맞는 선택자)
             # 일반적인 이커머스 사이트의 제품 목록 선택자 시도
-            product_elements = self.find_elements(By.CSS_SELECTOR, "li.item.xans-record-")
+            product_elements = self.find_elements(By.CSS_SELECTOR, "ul.prdList li.swiper-slide.xans-record-")
 
             if not product_elements:
                 self.logger.warning("페이지에서 제품 요소를 찾을 수 없습니다")
@@ -84,15 +84,8 @@ class Juice24Crawler(BaseCrawler):
                     # 제품 가격 추출 (.description .spec 선택자에 최하단 li span)
                     try:
                         # 모든 li span 요소를 찾아서 마지막 요소 선택
-                        price_elements = element.find_elements(By.CSS_SELECTOR, ".description .spec li span")
-                        if price_elements and len(price_elements) > 0:
-                            # 마지막 li span 요소의 텍스트 가져오기
-                            price_element = price_elements[-1]  # 최하단 li span
-                            price_str = price_element.text.strip()
-                        else:
-                            # 대체 선택자 시도
-                            price_element = element.find_element(By.CSS_SELECTOR, ".description .spec span")
-                            price_str = price_element.text.strip() if price_element else "N/A"
+                        price_element = element.find_element(By.CSS_SELECTOR, ".description li.msale span.m_item")
+                        price_str = price_element.text.strip()
                     except Exception as e:
                         self.logger.warning(f"가격 요소를 찾을 수 없습니다: {str(e)}")
                         price_str = "N/A"
@@ -108,11 +101,11 @@ class Juice24Crawler(BaseCrawler):
                             price = 0
 
                     # 제품 URL 추출 (.description a 선택자 href)
-                    url_element = element.find_element(By.CSS_SELECTOR, ".description a")
+                    url_element = element.find_element(By.CSS_SELECTOR, ".thumbnail .prdImg a")
                     url = url_element.get_attribute("href") if url_element else "N/A"
 
                     # 제품 이미지 URL 추출 (.thumbnail img 선택자 src)
-                    img_element = element.find_element(By.CSS_SELECTOR, ".add_thumb img")
+                    img_element = element.find_element(By.CSS_SELECTOR, ".thumbnail .prdImg img")
                     img_url = img_element.get_attribute("src") if img_element else "N/A"
 
                     product_info = {
