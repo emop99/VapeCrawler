@@ -138,7 +138,7 @@ def normalize_title_text(text):
     text = re.sub(r'알케마스터(?!\s)', '알케마스터 ', text)
     text = re.sub(r'레인보우 리퀴드', '레인보우리퀴드', text)
     text = re.sub(r'더 블랙', '더블랙', text)
-    text = re.sub(r'BLVK', '블랙유니콘', text)
+    text = re.sub(r'blvk', '블랙유니콘', text)
 
     # 제품명 처리
     text = re.sub(r'mint', '민트', text)
