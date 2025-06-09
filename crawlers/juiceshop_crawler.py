@@ -64,7 +64,7 @@ class JuiceshopCrawler(BaseCrawler):
             product_elements = self.find_elements(By.CSS_SELECTOR, ".prdList .item")
 
             if not product_elements:
-                self.logger.warning("페이지에서 제품 요소를 찾을 수 없습니다")
+                self.logger.info("페이지에서 제품 요소를 찾을 수 없습니다")
                 has_products = False
                 break
 
