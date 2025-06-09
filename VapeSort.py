@@ -206,7 +206,6 @@ def get_company_id_from_title(title):
         if brand_name.lower() in normalized_title:
             return brand_info['id']  # 브랜드 ID 반환
 
-    logger.warning(f"알려진 제조사가 없습니다. {normalized_title} ")
     return 1  # 기본값 (알 수 없는 경우)
 
 
@@ -405,6 +404,9 @@ if __name__ == "__main__":
             company_id = get_company_id_from_title(visible_product_name)
             product_category_id = product_category_list[products_in_group[0]['product_type']]['id']
             normalize_product_grouping_name = normalize_product_grouping_key(visible_product_name)
+
+            if company_id == 1:
+                logger.warning(f"알 수 없는 회사 입니다. 전체상품명: {products_in_group[0].get('title', '')} 정규화상품명: {visible_product_name}")
 
             try:
                 # 기존 등록된 가격 비교 상품 주소인지 확인
