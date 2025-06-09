@@ -223,7 +223,10 @@ class Juice99Crawler(BaseCrawler):
                 try:
                     category_products = crawler.get_products()
                     results[category] = category_products
-                    self.logger.info(f"카테고리 '{category}'에서 {len(category_products)}개의 제품을 찾았습니다")
+                    product_count = len(category_products)
+                    self.logger.info(f"카테고리 '{category}'에서 {product_count}개의 제품을 찾았습니다")
+                    if product_count == 0:
+                        self.logger.warning(f"카테고리 '{category}'에서 제품을 찾지 못했습니다.")
                 finally:
                     # 리소스 정리
                     crawler.close()
