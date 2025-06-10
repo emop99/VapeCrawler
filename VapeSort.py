@@ -497,6 +497,11 @@ if __name__ == "__main__":
 
                     # 가격이 변경된 경우 업데이트
                     if old_price != new_price:
+                        lowest_price_search_query = "SELECT price FROM vapesite.vape_price_comparisons WHERE productId = %s ORDER BY price ASC LIMIT 1"
+
+                        # 상품의 업데이트 이전 최저가 가격 가져오기
+                        old_lowest_price = _db.fetch_one(lowest_price_search_query, [grouping_product_id])
+
                         # 판매 사이트 현재 가격 정보 업데이트
                         _db.update_data(
                             'vapesite.vape_price_comparisons',
@@ -505,31 +510,22 @@ if __name__ == "__main__":
                             (price_comparison_id,)
                         )
 
-                        query = "SELECT newPrice FROM vapesite.vape_price_history WHERE productId = %s AND sellerId = %s ORDER BY createdAt DESC LIMIT 1"
-                        existing_price_history = _db.fetch_one(query, (grouping_product_id, seller_site_id))
-                        if existing_price_history and existing_price_history['newPrice'] == new_price:
-                            logger.info(f"가격 변동 이력 존재 하여 저장 제외: {json.dumps(product, ensure_ascii=False, indent=2)}")
-                            continue
+                        # 상품의 가격 업데이트 이후 최저가 가격 가져오기
+                        new_lowest_price = _db.fetch_one(lowest_price_search_query, [grouping_product_id])
 
-                        logger.info(f"가격 변동 감지: {title} - {old_price} -> {new_price}")
+                        # 가격 변동 체크
+                        if old_lowest_price and new_lowest_price and old_lowest_price['price'] != new_lowest_price['price']:
+                            logger.info(f"가격 변동 감지: {title} - {old_lowest_price['price']} -> {new_lowest_price['price']}")
 
-                        price_history_data = {
-                            'productId': grouping_product_id,
-                            'sellerId': seller_site_id,
-                            'oldPrice': old_price,
-                            'newPrice': new_price,
-                            'priceDifference': new_price - old_price,
-                            'percentageChange': (new_price - old_price) / old_price * 100 if old_price else 0,
-                        }
-                        try:
+                            price_history_data = {
+                                'productId': grouping_product_id,
+                                'sellerId': seller_site_id,
+                                'oldPrice': old_lowest_price['price'],
+                                'newPrice': new_lowest_price['price'],
+                                'priceDifference': new_lowest_price['price'] - old_lowest_price['price'],
+                                'percentageChange': (new_lowest_price['price'] - old_lowest_price['price']) / old_lowest_price['price'] * 100 if old_lowest_price['price'] else 0,
+                            }
                             _db.insert_data('vapesite.vape_price_history', price_history_data)
-                        except Exception as e:
-                            error_str = str(e)
-                            if "Duplicate entry" in error_str:
-                                continue
-                            else:
-                                raise e
-                        logger.info(f"가격 변동 이력 저장 완료: {title}")
                 else:
                     comparison_id = _db.insert_data('vapesite.vape_price_comparisons', price_comparison_data)
                     logger.info(f"새 가격 비교 데이터 저장 완료: {title} - {new_price}")
