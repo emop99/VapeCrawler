@@ -22,11 +22,13 @@ _brand_cache = None
 # 로깅 디렉토리 생성
 os.makedirs('log', exist_ok=True)
 
+
 # 명령줄 인수 파싱 (로깅 설정을 위해 미리 파싱)
 def parse_args():
     parser = argparse.ArgumentParser(description='VapeSort - 베이프 상품 정보 정렬 및 그룹화 스크립트')
     parser.add_argument('--env-file', type=str, help='사용할 .env 파일 경로 (예: .env.development)')
     return parser.parse_known_args()[0]
+
 
 # 환경 변수 파일 경로 가져오기
 pre_args = parse_args()
@@ -40,6 +42,7 @@ logger_instance = LoggerFactory.create_elasticsearch_logger(
     env_file=env_file
 )
 logger = logger_instance.get_logger()
+
 
 def get_vape_brands_from_db():
     global _brand_cache, _db
@@ -483,7 +486,8 @@ if __name__ == "__main__":
                     'productId': grouping_product_id,
                     'sellerId': seller_site_id,
                     'sellerUrl': seller_url,
-                    'price': new_price
+                    'price': new_price,
+                    'originTitle': title,
                 }
 
                 # 이미 존재하는지 확인
@@ -505,7 +509,7 @@ if __name__ == "__main__":
                         # 판매 사이트 현재 가격 정보 업데이트
                         _db.update_data(
                             'vapesite.vape_price_comparisons',
-                            {'price': new_price, 'sellerUrl': seller_url},
+                            {'price': new_price, 'sellerUrl': seller_url, 'originTitle': title},
                             'id = %s',
                             (price_comparison_id,)
                         )
@@ -526,6 +530,15 @@ if __name__ == "__main__":
                                 'percentageChange': (new_lowest_price['price'] - old_lowest_price['price']) / old_lowest_price['price'] * 100 if old_lowest_price['price'] else 0,
                             }
                             _db.insert_data('vapesite.vape_price_history', price_history_data)
+                            logger.info(f"가격 이력 저장 완료: {title} - {old_lowest_price['price']} -> {new_lowest_price['price']}")
+                    else:
+                        _db.update_data(
+                            'vapesite.vape_price_comparisons',
+                            {'originTitle': title},
+                            'id = %s',
+                            (price_comparison_id,)
+                        )
+
                 else:
                     comparison_id = _db.insert_data('vapesite.vape_price_comparisons', price_comparison_data)
                     logger.info(f"새 가격 비교 데이터 저장 완료: {title} - {new_price}")
