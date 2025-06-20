@@ -62,7 +62,7 @@ def save_results(results, site_name):
         "skyvape": "스카이베이프",
         "kimivape": "키미베이프",
         "juicegram": "쥬스그램",
-        "vape49": "49베이프",
+        "vape49": "싸구베이프",
     }
 
     # 타임스탬프가 포함된 파일 이름 생성
