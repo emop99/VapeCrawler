@@ -52,7 +52,7 @@ def get_vape_brands_from_db():
             return _brand_cache
 
         # vape_company 테이블에서 브랜드 이름 가져오기
-        query = "SELECT id, name FROM vapesite.vape_company"
+        query = "SELECT id, name FROM vapesite.vape_company ORDER BY LENGTH(name) DESC"
         result = _db.fetch_all(query)
 
         if not result:
