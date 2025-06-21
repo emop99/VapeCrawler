@@ -424,16 +424,33 @@ if __name__ == "__main__":
                         break
 
                 if grouping_product_id:
-                    query = "SELECT id, visibleName, productGroupingName FROM vapesite.vape_products WHERE id = %s"
+                    query = "SELECT id, visibleName, productGroupingName, imageUrl FROM vapesite.vape_products WHERE id = %s"
                     product = _db.fetch_one(query, [grouping_product_id])
                 else:
-                    query = "SELECT id, visibleName, productGroupingName FROM vapesite.vape_products WHERE companyId = %s AND productGroupingName = %s AND productCategoryId = %s"
+                    query = "SELECT id, visibleName, productGroupingName, imageUrl FROM vapesite.vape_products WHERE companyId = %s AND productGroupingName = %s AND productCategoryId = %s"
                     product = _db.fetch_one(query, (company_id, normalize_product_grouping_name, product_category_id))
 
                 if product:
                     # 기존 등록된 상품 정보로 처리
                     logger.info(f"기존 상품 정보 조회 성공: ID={product['id']}, 노출상품명={product['visibleName']}, 그룹상품명={product['productGroupingName']}")
                     grouping_product_id = product['id']
+
+                    # 기존 상품의 이미지 URL이 없는 경우 새로운 이미지 URL로 업데이트
+                    if not product['imageUrl']:
+                        image_url = products_in_group[0].get('image_url', '')
+                        if not image_url:
+                            for product in products_in_group:
+                                if product.get('image_url'):
+                                    image_url = product['image_url']
+                                    break
+                        if image_url:
+                            _db.update_data(
+                                'vapesite.vape_products',
+                                {'imageUrl': image_url},
+                                'id = %s',
+                                (grouping_product_id,)
+                            )
+                            logger.info(f"기존 상품 이미지 URL 업데이트: {image_url}")
                 else:
                     # 신규 상품 정보 등록
                     try:
