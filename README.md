@@ -100,6 +100,11 @@ python VapeCrawler.py --sites vapemonster vapinglab juice24
 - `juiceshop` - 액상샵
 - `skyvape` - 스카이베이프
 - `kimivape` - 키미베이프
+- `juicegram` - 쥬스그램
+- `vape49` - 베이프49
+- `loungevape` - 라운지베이프
+- `juice79` - 액상79
+- `breathingkorea` - 베이프닷컴
 
 ### 특정 키워드로 검색
 
@@ -197,7 +202,12 @@ VapeCrawler/
 │   ├── juicebox_crawler.py     # Juicebox 사이트용 크롤러
 │   ├── juiceshop_crawler.py    # Juiceshop 사이트용 크롤러
 │   ├── skyvape_crawler.py      # SkyVape 사이트용 크롤러
-│   └── kimivape_crawler.py     # KimiVape 사이트용 크롤러
+│   ├── kimivape_crawler.py     # KimiVape 사이트용 크롤러
+│   ├── juicegram_crawler.py    # Juicegram 사이트용 크롤러
+│   ├── vape49_crawler.py       # Vape49 사이트용 크롤러
+│   ├── loungevape_crawler.py   # LoungeVape 사이트용 크롤러
+│   ├── juice79_crawler.py      # Juice79 사이트용 크롤러
+│   └── breathingkorea_crawler.py # BreathingKorea 사이트용 크롤러
 ├── module/                # 유틸리티 모듈
 │   ├── MariaDBConnector.py # 데이터베이스 연결 모듈
 │   ├── elasticsearch_logger.py # Elasticsearch 로깅 모듈
@@ -208,7 +218,8 @@ VapeCrawler/
 │   ├── vape_crawler.log   # 크롤러 로그 파일
 │   ├── vape_sort.log      # 정렬 로그 파일
 │   └── vape_runner.log    # 자동화 실행 로그 파일
-└── .env                   # 환경 설정 파일
+├── .env                   # 기본 환경 설정 파일
+└── .env.development       # 개발용 환경 설정 파일
 ```
 
 ## 새 크롤러 추가하기
@@ -225,7 +236,7 @@ class NewSiteCrawler(BaseCrawler):
         self.site_name = 'newsite'
         self.site_url = 'https://www.newvapesite.com'
         self.category = category
-    
+
     def crawl(self, keywords=None, categories=None):
         # 크롤링 로직 구현
         results = {"입호흡": [], "폐호흡": []}
@@ -240,7 +251,8 @@ from .newsite_crawler import NewSiteCrawler
 # ...existing imports...
 __all__ = ['BaseCrawler', 'VapeMonsterCrawler', 'VapingLabCrawler', 'Juice24Crawler', 
            'Juice99Crawler', 'JuiceboxCrawler', 'JuiceshopCrawler', 'SkyVapeCrawler', 
-           'KimiVapeCrawler', 'NewSiteCrawler']
+           'KimiVapeCrawler', 'JuicegramCrawler', 'Vape49Crawler', 'LoungeVapeCrawler',
+           'Juice79Crawler', 'BreathingKoreaCrawler', 'NewSiteCrawler']
 ```
 
 4. `VapeCrawler.py`의 `crawler_map` 딕셔너리에 새 크롤러 추가:
@@ -255,6 +267,11 @@ crawler_map = {
     'juiceshop': JuiceshopCrawler,
     'skyvape': SkyVapeCrawler,
     'kimivape': KimiVapeCrawler,
+    'juicegram': JuicegramCrawler,
+    'vape49': Vape49Crawler,
+    'loungevape': LoungeVapeCrawler,
+    'juice79': Juice79Crawler,
+    'breathingkorea': BreathingKoreaCrawler,
     'newsite': NewSiteCrawler
 }
 ```
@@ -264,8 +281,9 @@ crawler_map = {
 ```python
 parser.add_argument('--sites', nargs='+', 
                    choices=['vapemonster', 'vapinglab', 'juice24', 'juice99', 
-                           'juicebox', 'juiceshop', 'skyvape', 'kimivape', 
-                           'newsite', 'all'], 
+                           'juicebox', 'juiceshop', 'skyvape', 'kimivape',
+                           'juicegram', 'vape49', 'loungevape', 'juice79',
+                           'breathingkorea', 'newsite', 'all'], 
                    default=['all'],
                    help='Sites to crawl (default: all)')
 ```
