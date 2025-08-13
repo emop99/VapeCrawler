@@ -341,6 +341,70 @@ def load_and_integrate_products(file_paths):
     return category_grouped_products
 
 
+def remove_old_products(processed_product_ids, db_connector, logger):
+    logger.info("3차 크롤링 데이터에 없는 상품 제거 단계 시작")
+    try:
+        # 1. 현재 크롤링에서 처리되지 않은 상품 ID 목록 가져오기
+        query_all_db_product_ids = "SELECT id FROM vapesite.vape_products"
+        all_db_products = db_connector.fetch_all(query_all_db_product_ids)
+        all_db_product_ids = {product['id'] for product in all_db_products}
+
+        unprocessed_product_ids = all_db_product_ids - processed_product_ids
+
+        if unprocessed_product_ids:
+            logger.info(f"현재 크롤링에서 처리되지 않은 상품 수: {len(unprocessed_product_ids)}")
+            unprocessed_ids_list = list(unprocessed_product_ids)
+            if unprocessed_ids_list:
+                # 2. 처리되지 않은 상품의 가격 비교 데이터 삭제
+                ids_str = ', '.join(map(str, unprocessed_ids_list))
+                db_connector.delete_data(
+                    'vapesite.vape_price_comparisons',
+                    f'productId IN ({ids_str})',
+                    ()
+                )
+                logger.info(f"처리되지 않은 상품의 가격 비교 데이터 삭제 완료.")
+        else:
+            logger.info("현재 크롤링에서 처리되지 않은 상품이 없습니다. 가격 비교 데이터 삭제 건너김.")
+
+        # 3. 가격 비교 데이터가 없는 상품 (vape_products) 제거
+        query_products_without_comparisons = """
+            SELECT vp.id
+            FROM vapesite.vape_products vp
+            LEFT JOIN vapesite.vape_price_comparisons vpc ON vp.id = vpc.productId
+            WHERE vpc.productId IS NULL
+        """
+        products_to_delete_from_main = db_connector.fetch_all(query_products_without_comparisons)
+        product_ids_to_delete_from_main = {product['id'] for product in products_to_delete_from_main}
+
+        if product_ids_to_delete_from_main:
+            logger.info(f"가격 비교 데이터가 없는 상품 수: {len(product_ids_to_delete_from_main)}")
+            delete_main_ids_list = list(product_ids_to_delete_from_main)
+            if delete_main_ids_list:
+                ids_str = ', '.join(map(str, delete_main_ids_list))
+                # 4. 가격 이력 데이터 (vape_price_history) 삭제
+                db_connector.delete_data(
+                    'vapesite.vape_price_history',
+                    f'productId IN ({ids_str})',
+                    ()
+                )
+                logger.info(f"가격 비교 데이터가 없는 상품의 가격 이력 (vape_price_history) 삭제 완료.")
+
+                # 5. 상품 (vape_products) 삭제
+                db_connector.delete_data(
+                    'vapesite.vape_products',
+                    f'id IN ({ids_str})',
+                    ()
+                )
+                logger.info(f"가격 비교 데이터가 없는 상품 (vape_products) 삭제 완료.")
+                logger.info(ids_str)
+        else:
+            logger.info("가격 비교 데이터가 없는 상품이 없습니다. 상품 제거 건너김.")
+
+    except Exception as e:
+        logger.error(f"오래된 상품 제거 중 오류 발생: {e}")
+    logger.info("3차 크롤링 데이터에 없는 상품 제거 단계 완료")
+
+
 # --- 실행 ---
 if __name__ == "__main__":
     # 명령줄 인수 파싱
@@ -400,6 +464,10 @@ if __name__ == "__main__":
 
     seller_site_list = get_vape_seller_from_db()
     product_category_list = get_vape_product_category_from_db()
+
+    # 처리된 상품 ID를 저장할 셋 초기화
+    processed_product_ids = set()
+
     for products_in_group in final_grouped_products:
         # 1차: 상품 정보 저장
         try:
@@ -434,6 +502,7 @@ if __name__ == "__main__":
                     # 기존 등록된 상품 정보로 처리
                     logger.info(f"기존 상품 정보 조회 성공: ID={product['id']}, 노출상품명={product['visibleName']}, 그룹상품명={product['productGroupingName']}")
                     grouping_product_id = product['id']
+                    processed_product_ids.add(grouping_product_id) # 처리된 상품 ID 추가
 
                     # 기존 상품의 이미지 URL이 없는 경우 새로운 이미지 URL로 업데이트
                     if not product['imageUrl']:
@@ -472,6 +541,7 @@ if __name__ == "__main__":
                         }
 
                         grouping_product_id = _db.insert_data('vapesite.vape_products', product_data)
+                        processed_product_ids.add(grouping_product_id) # 처리된 상품 ID 추가
                         logger.info(f"기존 상품 정보 조회 없음 상품 저장 처리: 노출상품명={visible_product_name} 그룹상품명={normalize_product_grouping_name}")
                     except Exception as e:
                         logger.error(f"신규 상품 정보 저장 중 오류 발생: {e}")
@@ -574,3 +644,6 @@ if __name__ == "__main__":
 
     logger.info(f"--- 그룹 상세 ---")
     logger.info(f"그룹 수: {len(final_grouped_products)}")
+
+    # 3차 크롤링 데이터에 없는 상품 제거
+    remove_old_products(processed_product_ids, _db, logger)
