@@ -340,8 +340,7 @@ def load_and_integrate_products(file_paths):
             logger.error(f"파일 처리 중 오류 발생 ({file_path}): {e}")
     return category_grouped_products
 
-
-def remove_old_products(processed_product_ids, db_connector, logger):
+def remove_old_products(processed_product_ids, active_product_urls, db_connector, logger):
     logger.info("3차 크롤링 데이터에 없는 상품 제거 단계 시작")
     try:
         # 1. 현재 크롤링에서 처리되지 않은 상품 ID 목록 가져오기
@@ -366,7 +365,28 @@ def remove_old_products(processed_product_ids, db_connector, logger):
         else:
             logger.info("현재 크롤링에서 처리되지 않은 상품이 없습니다. 가격 비교 데이터 삭제 건너김.")
 
-        # 3. 가격 비교 데이터가 없는 상품 (vape_products) 제거
+        # 3. 판매 중이지 않은 상품 URL 제거
+        query_all_db_urls = "SELECT sellerUrl FROM vapesite.vape_price_comparisons"
+        all_db_urls_result = db_connector.fetch_all(query_all_db_urls)
+        all_db_urls_set = {item['sellerUrl'] for item in all_db_urls_result}
+
+        # DB에만 있고 현재 크롤링 결과에는 없는 URL (삭제 대상)
+        urls_to_delete = all_db_urls_set - active_product_urls
+
+        if urls_to_delete:
+            logger.info(f"판매 종료된 상품 URL {len(urls_to_delete)}개를 삭제합니다.")
+            # 한 번의 쿼리로 여러 개의 URL을 삭제하여 성능 개선 및 SQL 인젝션 방지
+            urls_to_delete_list = list(urls_to_delete)
+            placeholders = ', '.join(['%s'] * len(urls_to_delete_list))
+            db_connector.delete_data(
+                'vapesite.vape_price_comparisons',
+                f'sellerUrl IN ({placeholders})',
+                urls_to_delete_list
+            )
+        else:
+            logger.info("판매 종료된 상품 URL이 없습니다.")
+
+        # 4. 가격 비교 데이터가 없는 상품 (vape_products) 제거
         query_products_without_comparisons = """
             SELECT vp.id
             FROM vapesite.vape_products vp
@@ -381,7 +401,7 @@ def remove_old_products(processed_product_ids, db_connector, logger):
             delete_main_ids_list = list(product_ids_to_delete_from_main)
             if delete_main_ids_list:
                 ids_str = ', '.join(map(str, delete_main_ids_list))
-                # 4. 가격 이력 데이터 (vape_price_history) 삭제
+                # 5. 가격 이력 데이터 (vape_price_history) 삭제
                 db_connector.delete_data(
                     'vapesite.vape_price_history',
                     f'productId IN ({ids_str})',
@@ -389,16 +409,17 @@ def remove_old_products(processed_product_ids, db_connector, logger):
                 )
                 logger.info(f"가격 비교 데이터가 없는 상품의 가격 이력 (vape_price_history) 삭제 완료.")
 
-                # 5. 상품 (vape_products) 삭제
-                db_connector.delete_data(
+                # 6. 상품 (vape_products) 미노출 처리
+                db_connector.update_data(
                     'vapesite.vape_products',
+                    {'isShow': False},
                     f'id IN ({ids_str})',
                     ()
                 )
-                logger.info(f"가격 비교 데이터가 없는 상품 (vape_products) 삭제 완료.")
+                logger.info(f"가격 비교 데이터가 없는 상품 (vape_products) 미노출 처리 완료.")
                 logger.info(ids_str)
         else:
-            logger.info("가격 비교 데이터가 없는 상품이 없습니다. 상품 제거 건너김.")
+            logger.info("가격 비교 데이터가 없는 상품이 없습니다. 상품 미노출 건너뜀.")
 
     except Exception as e:
         logger.error(f"오래된 상품 제거 중 오류 발생: {e}")
@@ -467,6 +488,8 @@ if __name__ == "__main__":
 
     # 처리된 상품 ID를 저장할 셋 초기화
     processed_product_ids = set()
+    # 판매 중인 상품 URL 셋 초기화
+    active_product_urls = set()
 
     for products_in_group in final_grouped_products:
         # 1차: 상품 정보 저장
@@ -577,6 +600,8 @@ if __name__ == "__main__":
                     'originTitle': title,
                 }
 
+                active_product_urls.add(seller_url) # 판매 중 상품 URL 추가
+
                 # 이미 존재하는지 확인
                 query = "SELECT id, price FROM vapesite.vape_price_comparisons WHERE productId = %s AND sellerUrl = %s AND sellerId = %s LIMIT 1"
                 existing_price = _db.fetch_one(query, [grouping_product_id, seller_url, seller_site_id])
@@ -646,4 +671,4 @@ if __name__ == "__main__":
     logger.info(f"그룹 수: {len(final_grouped_products)}")
 
     # 3차 크롤링 데이터에 없는 상품 제거
-    remove_old_products(processed_product_ids, _db, logger)
+    remove_old_products(processed_product_ids, active_product_urls, _db, logger)
