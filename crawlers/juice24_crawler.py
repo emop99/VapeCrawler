@@ -76,7 +76,7 @@ class Juice24Crawler(BaseCrawler):
                 try:
                     # 품절 여부 확인
                     try:
-                        is_sold_out_element = element.find_element(By.CSS_SELECTOR, "div.soldout")
+                        is_sold_out_element = element.find_element(By.CSS_SELECTOR, "div.soldout:not(.displaynone)")
                         if is_sold_out_element:
                             continue
                     except Exception as e:
