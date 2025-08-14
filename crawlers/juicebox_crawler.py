@@ -73,6 +73,14 @@ class JuiceboxCrawler(BaseCrawler):
             # 제품 정보 추출
             for element in product_elements:
                 try:
+                    # 품절 여부 확인
+                    try:
+                        is_sold_out_element = element.find_element(By.CSS_SELECTOR, "img[alt='품절']")
+                        if is_sold_out_element:
+                            continue
+                    except Exception as e:
+                        pass
+
                     # 제품 제목 추출 (.description .name a 선택자에 마지막 span)
                     try:
                         title_element = element.find_element(By.CSS_SELECTOR, ".description .name a")
