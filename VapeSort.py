@@ -672,3 +672,18 @@ if __name__ == "__main__":
 
     # 3차 크롤링 데이터에 없는 상품 제거
     remove_old_products(processed_product_ids, active_product_urls, _db, logger)
+
+    # 재전시 처리 쿼리 실행
+    logger.info(f"재전시 처리 쿼리 실행")
+    try:
+        query_redisplay_product = """UPDATE vape_products
+                                     SET isRedisplayed = 1
+                                     WHERE id IN (SELECT productId
+                                                  FROM vape_products
+                                                           LEFT JOIN vape_price_comparisons ON vape_products.id = vape_price_comparisons.productId
+                                                  WHERE isRedisplayed = 1
+                                                    AND isShow = 0
+                                                    AND vape_price_comparisons.id IS NOT NULL)"""
+        _db.execute_query(query_redisplay_product)
+    except Exception as e:
+        logger.error(f"재전시 처리 중 오류 발생: {e}")
