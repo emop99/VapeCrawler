@@ -677,7 +677,7 @@ if __name__ == "__main__":
     logger.info(f"재전시 처리 쿼리 실행")
     try:
         query_redisplay_product = """UPDATE vape_products
-                                     SET isRedisplayed = 1
+                                     SET isShow = 1
                                      WHERE id IN (SELECT productId
                                                   FROM vape_products
                                                            LEFT JOIN vape_price_comparisons ON vape_products.id = vape_price_comparisons.productId
