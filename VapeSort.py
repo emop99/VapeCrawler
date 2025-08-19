@@ -128,7 +128,7 @@ def normalize_title_text(text):
     # "정품", "새상품", "입호흡", "폐호흡" 등의 일반적인 단어 제거 (도메인에 따라 추가/수정)
     # "입호흡", "폐호흡"은 상품 유형을 나타내므로, 별도 필드로 관리하거나, 상품명 정규화 시 제거할 수 있습니다.
     # 여기서는 상품명에서 제거하고, 파일의 카테고리 키("입호흡", "폐호흡")를 활용합니다.
-    common_words_to_remove = ["정품", "새상품", "입호흡", "폐호흡", "액상샵", "특가", "할인" "★", "저농도", "｜"]
+    common_words_to_remove = ["정품", "새상품", "입호흡", "폐호흡", "액상샵", "특가", "할인" "★", "저농도"]
     for word in common_words_to_remove:
         text = text.replace(word, "")
 
@@ -148,6 +148,7 @@ def normalize_title_text(text):
     text = re.sub(r'mint', '민트', text)
     text = re.sub(r'fuji', '후지', text)
     text = re.sub(r'^new\s+', '', text)  # Remove 'new' prefix
+    text = re.sub(r'｜', ' ', text)
 
     # 제품명에서 용량 문구 제외 처리
     text = re.sub(r'(\d+\.?\d*)\s*(mg/ml|mg|ml|%|)', '', text)

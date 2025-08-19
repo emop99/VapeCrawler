@@ -98,8 +98,12 @@ class KarivapeCrawler(BaseCrawler):
                     price_element = element.find_element(By.CSS_SELECTOR, ".description ul.spec li:nth-child(2) span:nth-child(2)")
                     price_str = price_element.text.strip() if price_element else "N/A"
                 except Exception as e:
-                    self.logger.error(f"가격 추출 실패: {str(e)}")
-                    price_str = "N/A"
+                    try:
+                        price_element = element.find_element(By.CSS_SELECTOR, ".description ul.spec li:nth-child(1) span:nth-child(2)")
+                        price_str = price_element.text.strip() if price_element else "N/A"
+                    except Exception as e:
+                        self.logger.error(f"가격 추출 실패: {str(e)}")
+                        price_str = "N/A"
 
                 price = 0
                 if price_str != "N/A":
