@@ -6,7 +6,7 @@ import argparse
 from module.MariaDBConnector import MariaDBConnector
 import Levenshtein
 import concurrent.futures
-from pykospacing import Spacing  # PyKoSpacing 라이브러리 추가
+from kiwipiepy import Kiwi  # kiwipiepy 라이브러리 추가 (pykospacing 대체)
 # 로깅 모듈 가져오기
 from module.elasticsearch_logger import LoggerFactory
 
@@ -18,6 +18,8 @@ VapeSort.py - 베이프 상품 정보 정렬 및 그룹화 스크립트
 _db = None
 # 브랜드 목록 캐시 (메모리 캐싱)
 _brand_cache = None
+# 한국어 띄어쓰기 모델 (전역으로 한번만 로드하여 성능 향상)
+_kiwi_spacing = Kiwi()
 
 # 로깅 디렉토리 생성
 os.makedirs('log', exist_ok=True)
@@ -167,9 +169,9 @@ def normalize_title_text(text):
 def normalize_product_grouping_key(normalized_title):
     """
     상품명에서 그룹핑 키를 정규화합니다.
-    - 상품명에 모든 특수 문자 제거
+    - 상품명의 모든 특수 문자 제거
     - 소문자로 변환
-    - PyKoSpacing을 이용하여 자동 띄어쓰기 적용
+    - kiwipiepy를 이용하여 자동 띄어쓰기 적용
     - 정규화된 상품명에 띄어쓰기 기준으로 분리하여 내림차순 정렬합니다.
     """
     # 특수 문자 제거 (알파벳, 숫자, 한글, 공백만 허용)
@@ -178,12 +180,11 @@ def normalize_product_grouping_key(normalized_title):
     # 소문자로 변환
     normalized_title = normalized_title.lower()
 
-    # 모든 공백 제거
+    # 연속 공백을 하나로 만들고 양쪽 공백 제거
     normalized_title = re.sub(r'\s+', ' ', normalized_title).strip()
 
-    # PyKoSpacing을 이용한 자동 띄어쓰기 적용
-    spacing = Spacing()
-    normalized_title = spacing(normalized_title)
+    # kiwipiepy를 이용한 자동 띄어쓰기 적용 (전역 모델 사용)
+    normalized_title = _kiwi_spacing.space(normalized_title)
 
     # 띄어쓰기 기준으로 분리 후 내림차순 정렬
     words = normalized_title.split()
