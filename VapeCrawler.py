@@ -178,7 +178,7 @@ def main():
         'loungevape': LoungeVapeCrawler,
         'juice79': Juice79Crawler,
         'breathingkorea': BreathingKoreaCrawler,
-        'vape9': Vape9Crawler,
+        # 'vape9': Vape9Crawler, //TODO 로그인 프로세스 필요
         'vapeingduck': VapeingduckCrawler,
         'vapebibi': VapebibiCrawler,
         'vaporwave': VaporwaveCrawler,
