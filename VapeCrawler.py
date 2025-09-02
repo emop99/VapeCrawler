@@ -131,6 +131,12 @@ def run_crawler(crawler_class, keywords, headless, categories=None, env_file='.e
         total_products = sum(len(products) for products in results.values())
         logger.info(f"Crawling completed in {end_time - start_time:.2f} seconds")
         logger.info(f"Total products found: {total_products}")
+        if total_products == 0:
+            try:
+                from module.push_alarm import notify_crawler_empty
+                notify_crawler_empty(crawler.site_name)
+            except Exception as _e:
+                logger.warning(f"푸시 알림 전송 실패(크롤러 상품 없음): {_e}")
 
         # 결과 저장
         save_results(results, crawler.site_name)

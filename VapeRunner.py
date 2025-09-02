@@ -151,18 +151,34 @@ def main():
         crawler_success = run_vape_crawler(env_file)
         if not crawler_success:
             logger.error("VapeCrawler 실행 실패. 프로세스를 중단합니다.")
+            try:
+                from module.push_alarm import notify_runner_error
+                notify_runner_error('VapeCrawler 실행 실패')
+            except Exception as _e:
+                logger.warning(f"푸시 알림 전송 실패(오류): {_e}")
             return False
 
         # VapeSort 실행 (환경 변수 파일 경로 전달)
         sort_success = run_vape_sort(env_file)
         if not sort_success:
             logger.error("VapeSort 실행 실패. JSON 파일 정리를 진행합니다.")
+            try:
+                from module.push_alarm import notify_runner_error
+                notify_runner_error('VapeSort 실행 실패')
+            except Exception as _e:
+                logger.warning(f"푸시 알림 전송 실패(오류): {_e}")
 
         # JSON 파일 정리
         clean_json_files()
 
         end_time = time.time()
-        logger.info(f"VapeRunner 작업 완료. 총 소요 시간: {end_time - start_time:.2f}초")
+        total = end_time - start_time
+        logger.info(f"VapeRunner 작업 완료. 총 소요 시간: {total:.2f}초")
+        try:
+            from module.push_alarm import notify_runner_complete
+            notify_runner_complete(duration_seconds=total)
+        except Exception as _e:
+            logger.warning(f"푸시 알림 전송 실패(완료): {_e}")
         return True
 
     if interval:
