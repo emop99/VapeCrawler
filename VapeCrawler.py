@@ -15,7 +15,7 @@ from datetime import datetime
 
 # 크롤러 가져오기
 from crawlers import VapeMonsterCrawler, VapingLabCrawler, Juice24Crawler, Juice99Crawler, JuiceboxCrawler, JuiceshopCrawler, SkyVapeCrawler, KimiVapeCrawler, JuicegramCrawler, \
-    Vape49Crawler, LoungeVapeCrawler, Juice79Crawler, BreathingKoreaCrawler, Vape9Crawler, VapeingduckCrawler, VapebibiCrawler, VaporwaveCrawler, WitchjuiceCrawler, MamavapeCrawler, Vape365Crawler, Juice23Crawler, KarivapeCrawler, EveryoneVapeCrawler
+    Vape49Crawler, LoungeVapeCrawler, Juice79Crawler, BreathingKoreaCrawler, Vape9Crawler, VapeingduckCrawler, VapebibiCrawler, VaporwaveCrawler, WitchjuiceCrawler, MamavapeCrawler, Vape365Crawler, Juice23Crawler, KarivapeCrawler, EveryoneVapeCrawler, CiganuriCrawler
 # 로깅 모듈 가져오기
 from module.elasticsearch_logger import LoggerFactory
 
@@ -72,6 +72,7 @@ def save_results(results, site_name):
         "vapebibi": "전담액상비비",
         "vaporwave": "베이퍼웨이브",
         "witchjuice": "마녀쥬스",
+        "ciganuri": "시가누리",
         "mamavape": "마마베이프",
         "vape365": "베이프365",
         "23juice": "이삼액상",
@@ -105,7 +106,7 @@ def run_crawler(crawler_class, keywords, headless, categories=None, env_file='.e
     crawler = None
     try:
         # VapeMonsterCrawler, VapingLabCrawler, Juice24Crawler, Juice99Crawler, JuiceboxCrawler, JuiceshopCrawler, SkyVapeCrawler, KimiVapeCrawler, JuicegramCrawler, Vape49Crawler, LoungeVapeCrawler, Juice79Crawler, BreathingKoreaCrawler, Vape9Crawler, VapeingduckCrawler인 경우 카테고리 처리
-        if (crawler_class in [VapeMonsterCrawler, VapingLabCrawler, Juice24Crawler, Juice99Crawler, JuiceboxCrawler, JuiceshopCrawler, SkyVapeCrawler, KimiVapeCrawler, JuicegramCrawler, Vape49Crawler, LoungeVapeCrawler, Juice79Crawler, BreathingKoreaCrawler, Vape9Crawler, VapeingduckCrawler, VapebibiCrawler, VaporwaveCrawler, MamavapeCrawler, Juice23Crawler, KarivapeCrawler, EveryoneVapeCrawler]) and categories and len(
+        if (crawler_class in [VapeMonsterCrawler, VapingLabCrawler, Juice24Crawler, Juice99Crawler, JuiceboxCrawler, JuiceshopCrawler, SkyVapeCrawler, KimiVapeCrawler, JuicegramCrawler, Vape49Crawler, LoungeVapeCrawler, Juice79Crawler, BreathingKoreaCrawler, Vape9Crawler, VapeingduckCrawler, VapebibiCrawler, VaporwaveCrawler, WitchjuiceCrawler, CiganuriCrawler, MamavapeCrawler, Juice23Crawler, KarivapeCrawler, EveryoneVapeCrawler]) and categories and len(
                 categories) > 0:
             # 첫 번째 카테고리로 인스턴스 생성
             first_category = categories[0]
@@ -153,7 +154,7 @@ def main():
     """스크립트의 주요 진입점."""
     # 명령줄 인수 파싱
     parser = argparse.ArgumentParser(description='VapeCrawler - A modular web crawler for vape products')
-    parser.add_argument('--sites', nargs='+', choices=['vapemonster', 'vapinglab', 'juice24', 'juice99', 'juicebox', 'juiceshop', 'skyvape', 'kimivape', 'juicegram', 'vape49', 'loungevape', 'juice79', 'breathingkorea', 'vape9', 'vapeingduck', 'vapebibi', 'vaporwave', 'witchjuice', 'mamavape', 'vape365', '23juice', 'karivape', 'everyonevape', 'all'], default=['all'],
+    parser.add_argument('--sites', nargs='+', choices=['vapemonster', 'vapinglab', 'juice24', 'juice99', 'juicebox', 'juiceshop', 'skyvape', 'kimivape', 'juicegram', 'vape49', 'loungevape', 'juice79', 'breathingkorea', 'vape9', 'vapeingduck', 'vapebibi', 'vaporwave', 'witchjuice', 'ciganuri', 'mamavape', 'vape365', '23juice', 'karivape', 'everyonevape', 'all'], default=['all'],
                         help='Sites to crawl (default: all)')
     parser.add_argument('--keywords', nargs='+', default=['vape'],
                         help='Keywords to search for (default: vape)')
@@ -167,7 +168,7 @@ def main():
 
     # 크롤링할 사이트 결정
     if 'all' in args.sites:
-        sites_to_crawl = ['vapemonster', 'vapinglab', 'juice24', 'juice99', 'juicebox', 'juiceshop', 'skyvape', 'kimivape', 'juicegram', 'vape49', 'loungevape', 'juice79', 'breathingkorea', 'vape9', 'vapeingduck', 'vapebibi', 'vaporwave', 'witchjuice', 'mamavape', 'vape365', '23juice', 'karivape', 'everyonevape']
+        sites_to_crawl = ['vapemonster', 'vapinglab', 'juice24', 'juice99', 'juicebox', 'juiceshop', 'skyvape', 'kimivape', 'juicegram', 'vape49', 'loungevape', 'juice79', 'breathingkorea', 'vape9', 'vapeingduck', 'vapebibi', 'vaporwave', 'witchjuice', 'ciganuri', 'mamavape', 'vape365', '23juice', 'karivape', 'everyonevape']
     else:
         sites_to_crawl = args.sites
 
@@ -190,6 +191,7 @@ def main():
         'vapebibi': VapebibiCrawler,
         'vaporwave': VaporwaveCrawler,
         'witchjuice': WitchjuiceCrawler,
+                'ciganuri': CiganuriCrawler,
         'mamavape': MamavapeCrawler,
         'vape365': Vape365Crawler,
         '23juice': Juice23Crawler,
@@ -213,7 +215,7 @@ def main():
     for site in sites_to_crawl:
         if site in crawler_map:
             # 스레드 생성
-            if (site == 'vapemonster' or site == 'vapinglab' or site == 'juice24' or site == 'juice99' or site == 'juicebox' or site == 'juiceshop' or site == 'kimivape' or site == 'juicegram' or site == 'vape49' or site == 'loungevape' or site == 'juice79' or site == 'breathingkorea' or site == 'vape9' or site == 'vapeingduck' or site == 'vapebibi' or site == 'vaporwave' or site == 'witchjuice' or site == 'mamavape' or site == 'vape365' or site == '23juice' or site == 'karivape' or site == 'everyonevape') and args.categories:
+            if (site == 'vapemonster' or site == 'vapinglab' or site == 'juice24' or site == 'juice99' or site == 'juicebox' or site == 'juiceshop' or site == 'kimivape' or site == 'juicegram' or site == 'vape49' or site == 'loungevape' or site == 'juice79' or site == 'breathingkorea' or site == 'vape9' or site == 'vapeingduck' or site == 'vapebibi' or site == 'vaporwave' or site == 'witchjuice' or site == 'ciganuri' or site == 'mamavape' or site == 'vape365' or site == '23juice' or site == 'karivape' or site == 'everyonevape') and args.categories:
                 thread = threading.Thread(
                     target=run_crawler,
                     args=(crawler_map[site], args.keywords, not args.no_headless, args.categories, args.env_file),
