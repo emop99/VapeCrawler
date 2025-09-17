@@ -13,8 +13,8 @@ class VapeMonsterCrawler(BaseCrawler):
 
     # 카테고리 코드 매핑
     CATEGORIES = {
-        "입호흡": "006",
-        "폐호흡": "007",
+        "입호흡": "016002",
+        "폐호흡": "016003",
     }
 
     def __init__(self, headless=True, category="입호흡", env_file='.env'):
