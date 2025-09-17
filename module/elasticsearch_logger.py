@@ -180,10 +180,10 @@ class ElasticsearchLogger(BaseLogger):
             return self.logger
 
         # 환경 변수 확인하여 개발환경 여부 판단
-        run_env = os.getenv("RUN_ENV", "").lower()
-        if run_env in ("dev", "development", "local"):
+        run_elastic = os.getenv("RUN_ELASTIC", "").lower()
+        if run_elastic in "false":
             import sys
-            sys.stderr.write(f"[{self.logger_name}] 개발 환경(RUN_ENV={run_env})에서는 Elasticsearch 로깅이 비활성화됩니다.\n")
+            sys.stderr.write(f"[{self.logger_name}] Elasticsearch 로깅이 비활성화됩니다.\n")
             # 개발 환경에서는 파일과 콘솔 로깅만 설정
             self._setup_file_console_handlers()
             return self.logger
