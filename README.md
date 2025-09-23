@@ -16,19 +16,19 @@
 ## 특징
 
 - 사이트별 크롤러 구현이 분리된 모듈식 아키텍처
-- 여러 전자 담배 사이트 지원 (베이프몬스터, 김성유베이핑연구소, 액상24, 액상99, 쥬스박스, 액상샵, 스카이베이프, 키미베이프)
+- 다양한 전자담배 쇼핑몰 지원 (베이프몬스터, 김성유베이핑연구소, 액상24, 액상99, 쥬스박스, 액상샵, 키미베이프, 쥬스그램, 싸구베이프, 베이프월드, 친구액상, 베이프닷컴, 베이프나인, 베이핑덕, 전담액상비비, 베이퍼웨이브, 마녀쥬스, 시가누리, 마마베이프, 베이프365, 이삼액상, 카리베이프, 모두의액상, 티에프몰 등)
 - Selenium Chrome 드라이버를 사용한 브라우저 자동화
 - 특정 크롤러를 사용자 지정 매개변수로 실행하는 명령줄 인터페이스
 - 카테고리별 크롤링 지원 (입호흡, 폐호흡)
-- 제품 정보 추출
-- 타임스탬프가 포함된 JSON 형식으로 결과 저장
-- 헤드리스 모드 지원 (브라우저 창 없이 실행)
-- 자동화된 데이터 수집 및 정렬 워크플로우
-- Elasticsearch 기반 로깅 시스템
+- 제품 정보 추출 및 JSON 저장 (타임스탬프 포함)
+- 헤드리스/비헤드리스 실행 지원
+- 자동화된 데이터 수집(VapeCrawler) 및 정렬(VapeSort) 워크플로우, VapeRunner로 일괄 실행 및 주기 실행 지원
+- Elasticsearch 기반 로깅 시스템(옵션) 및 파일/콘솔 로깅
+- 크롤링 결과 없음/오류/완료 시 관리자 푸시 알림 지원(옵션)
 
 ## 요구사항
 
-- Python 3.6 이상
+- Python 3.8 이상 권장
 - ChromeDriver (Chrome 버전과 호환되는 버전)
 - MariaDB/MySQL 데이터베이스
 - 필수 Python 라이브러리:
@@ -36,8 +36,9 @@
   - pymysql
   - python-dotenv
   - Levenshtein
-  - pykospacing
-  - elasticsearch (로깅용)
+  - kiwipiepy (상품명 정규화/띄어쓰기)
+  - elasticsearch (로깅용, 선택)
+  - requests (푸시 알림용, 선택)
 
 ## 설치방법
 
@@ -49,7 +50,7 @@
 
 2. 필요한 패키지 설치:
    ```bash
-   pip install selenium pymysql python-dotenv Levenshtein pykospacing elasticsearch
+   pip install selenium pymysql python-dotenv Levenshtein kiwipiepy elasticsearch requests
    ```
 
 3. Chrome과 ChromeDriver가 설치되어 있는지 확인:
@@ -61,13 +62,27 @@
 4. 환경 설정 파일 생성:
    `.env` 파일을 프로젝트 루트 디렉토리에 생성하고 다음과 같이 설정:
    ```
-   MARIADB_HOST=
-   MARIADB_USER=
-   MARIADB_PASSWORD=
-   MARIADB_DATABASE=
-   ELASTICSEARCH_HOST=
-   ELASTICSEARCH_PORT=
+   # 데이터베이스 연결 정보
+   DB_HOST=
+   DB_PORT=3306
+   DB_USER=
+   DB_PASSWORD=
+   DB_DATABASE=
+
+   # Elasticsearch 로깅 (선택)
+   ES_ENABLED=true            # false로 두면 ES 로깅 비활성화
+   RUN_ELASTIC=true           # "false"로 두면 ES 로깅 강제 비활성화
+   ES_HOST=localhost:9200
+   ES_INDEX=vape_logs
+   ES_USER=
+   ES_PASSWORD=
+   ES_TIMEOUT=60
+
+   # 푸시 알림 (선택)
+   PUSH_BASE_URL=
+   PUSH_API_KEY=
    ```
+   예시는 `.env.example` 파일을 참고하세요.
 
 ## 사용방법
 
@@ -92,19 +107,34 @@ python VapeCrawler.py --sites vapemonster vapinglab juice24
 
 ### 지원하는 사이트
 
+아래 사이트 코드를 --sites 옵션으로 지정할 수 있습니다. 'all'을 지정하면 아래 지원 사이트 전부가 실행됩니다.
+
 - `vapemonster` - 베이프몬스터(베몬)
 - `vapinglab` - 김성유베이핑연구소(김성유)
 - `juice24` - 액상24
 - `juice99` - 액상99
 - `juicebox` - 쥬스박스
 - `juiceshop` - 액상샵
-- `skyvape` - 스카이베이프
 - `kimivape` - 키미베이프
 - `juicegram` - 쥬스그램
-- `vape49` - 베이프49
-- `loungevape` - 라운지베이프
-- `juice79` - 액상79
+- `vape49` - 싸구베이프
+- `loungevape` - 베이프월드
+- `juice79` - 친구액상
 - `breathingkorea` - 베이프닷컴
+- `vape9` - 베이프나인
+- `vapeingduck` - 베이핑덕
+- `vapebibi` - 전담액상비비
+- `vaporwave` - 베이퍼웨이브
+- `witchjuice` - 마녀쥬스
+- `ciganuri` - 시가누리
+- `mamavape` - 마마베이프
+- `vape365` - 베이프365
+- `23juice` - 이삼액상
+- `karivape` - 카리베이프
+- `everyonevape` - 모두의액상
+- `tfnmall` - 티에프몰
+
+참고: `skyvape`(스카이베이프)는 현재 로그인 절차가 필요하여 기본 제공 실행 목록에서 제외되어 있습니다.
 
 ### 특정 키워드로 검색
 
