@@ -13,12 +13,12 @@ class VapebibiCrawler(BaseCrawler):
     Cafe24 기반 레이아웃과 동일한 셀렉터 패턴을 사용.
     """
     CATEGORIES = {
-        "입호흡": "369",
-        "폐호흡": "363",
+        "입호흡": "26",
+        "폐호흡": "27",
     }
 
     def __init__(self, headless=True, category="입호흡", env_file='.env'):
-        super().__init__("vapebibi", headless, env_file=env_file)
+        super().__init__("vapebibi", False, env_file=env_file)
         self.base_url = "https://xn--jk1bo8sa06werixle.com"
         category_path = self.CATEGORIES.get(category, self.CATEGORIES["입호흡"])
         self.category = category

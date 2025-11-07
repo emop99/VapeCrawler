@@ -192,7 +192,7 @@ def main():
         'vapebibi': VapebibiCrawler,
         'vaporwave': VaporwaveCrawler,
         'witchjuice': WitchjuiceCrawler,
-                'ciganuri': CiganuriCrawler,
+        'ciganuri': CiganuriCrawler,
         'mamavape': MamavapeCrawler,
         'vape365': Vape365Crawler,
         '23juice': Juice23Crawler,
