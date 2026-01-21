@@ -61,7 +61,7 @@ class Vape49Crawler(BaseCrawler):
             time.sleep(2)
 
             # 모든 제품 요소 찾기
-            product_elements = self.find_elements(By.CSS_SELECTOR, ".prdList [id^='anchorBoxId_']")
+            product_elements = self.find_elements(By.CSS_SELECTOR, ".xans-product-listnormal .prdList [id^='anchorBoxId_']")
 
             if not product_elements:
                 self.logger.info("페이지에서 제품 요소를 찾을 수 없습니다")
