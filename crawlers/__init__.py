@@ -31,5 +31,6 @@ from .ciganuri_crawler import CiganuriCrawler
 from .tfnmall_crawler import TfnmallCrawler
 from .aecsangdeokhu_crawler import AecsangdeokhuCrawler
 from .juicemarket_crawler import JuicemarketCrawler
+from .elecshop_crawler import ElecshopCrawler
 
-__all__ = ['BaseCrawler', 'VapeMonsterCrawler', 'VapingLabCrawler', 'Juice24Crawler', 'Juice99Crawler', 'JuiceboxCrawler', 'JuiceshopCrawler', 'SkyVapeCrawler', 'KimiVapeCrawler', 'JuicegramCrawler', 'Vape49Crawler', 'LoungeVapeCrawler', 'Juice79Crawler', 'BreathingKoreaCrawler', 'Vape9Crawler', 'VapeingduckCrawler', 'VapebibiCrawler', 'VaporwaveCrawler', 'WitchjuiceCrawler', 'MamavapeCrawler', 'Vape365Crawler', 'Juice23Crawler', 'KarivapeCrawler', 'EveryoneVapeCrawler', 'CiganuriCrawler', 'TfnmallCrawler', 'AecsangdeokhuCrawler', 'JuicemarketCrawler']
+__all__ = ['BaseCrawler', 'VapeMonsterCrawler', 'VapingLabCrawler', 'Juice24Crawler', 'Juice99Crawler', 'JuiceboxCrawler', 'JuiceshopCrawler', 'SkyVapeCrawler', 'KimiVapeCrawler', 'JuicegramCrawler', 'Vape49Crawler', 'LoungeVapeCrawler', 'Juice79Crawler', 'BreathingKoreaCrawler', 'Vape9Crawler', 'VapeingduckCrawler', 'VapebibiCrawler', 'VaporwaveCrawler', 'WitchjuiceCrawler', 'MamavapeCrawler', 'Vape365Crawler', 'Juice23Crawler', 'KarivapeCrawler', 'EveryoneVapeCrawler', 'CiganuriCrawler', 'TfnmallCrawler', 'AecsangdeokhuCrawler', 'JuicemarketCrawler', 'ElecshopCrawler']

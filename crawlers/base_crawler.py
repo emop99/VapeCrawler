@@ -171,10 +171,33 @@ class BaseCrawler:
     def extract_text(self, element, selector, default="N/A"):
         """요소에서 텍스트를 안전하게 추출합니다."""
         try:
-            if not selector:
-                return element.text.strip() or default
-            found_element = element.find_element(By.CSS_SELECTOR, selector)
-            return found_element.text.strip() if found_element else default
+            remove_selectors = []
+            selector_value = selector
+            if isinstance(selector, dict):
+                selector_value = selector.get("selector", "")
+                remove_selectors = selector.get("remove", []) or []
+
+            if not selector_value:
+                found_element = element
+            else:
+                found_element = element.find_element(By.CSS_SELECTOR, selector_value)
+
+            if not found_element:
+                return default
+
+            if remove_selectors:
+                script = """
+                    const el = arguments[0].cloneNode(true);
+                    const removes = arguments[1] || [];
+                    removes.forEach(sel => {
+                        el.querySelectorAll(sel).forEach(node => node.remove());
+                    });
+                    return (el.textContent || '').trim();
+                """
+                text = self.driver.execute_script(script, found_element, remove_selectors)
+                return text or default
+
+            return found_element.text.strip() or default
         except Exception:
             return default
 
