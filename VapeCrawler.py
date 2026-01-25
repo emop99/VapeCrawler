@@ -15,7 +15,7 @@ from datetime import datetime
 
 # 크롤러 가져오기
 from crawlers import VapeMonsterCrawler, VapingLabCrawler, Juice24Crawler, Juice99Crawler, JuiceboxCrawler, JuiceshopCrawler, SkyVapeCrawler, KimiVapeCrawler, JuicegramCrawler, \
-    Vape49Crawler, LoungeVapeCrawler, Juice79Crawler, BreathingKoreaCrawler, Vape9Crawler, VapeingduckCrawler, VapebibiCrawler, VaporwaveCrawler, WitchjuiceCrawler, MamavapeCrawler, Vape365Crawler, Juice23Crawler, KarivapeCrawler, EveryoneVapeCrawler, CiganuriCrawler, TfnmallCrawler, AecsangdeokhuCrawler, JuicemarketCrawler, ElecshopCrawler
+    Vape49Crawler, LoungeVapeCrawler, Juice79Crawler, BreathingKoreaCrawler, Vape9Crawler, VapeingduckCrawler, VapebibiCrawler, VaporwaveCrawler, WitchjuiceCrawler, MamavapeCrawler, Vape365Crawler, Juice23Crawler, KarivapeCrawler, EveryoneVapeCrawler, CiganuriCrawler, TfnmallCrawler, AecsangdeokhuCrawler, JuicemarketCrawler, ElecshopCrawler, DeliquidCrawler
 # 로깅 모듈 가져오기
 from module.elasticsearch_logger import LoggerFactory
 
@@ -82,6 +82,7 @@ def save_results(results, site_name):
         "aecsangdeokhu": "액상덕후",
         "juicemarket": "액상마켓",
         "elecshop": "일렉샵",
+        "deliquid": "딜리퀴드",
     }
 
     # 타임스탬프가 포함된 파일 이름 생성
@@ -110,7 +111,7 @@ def run_crawler(crawler_class, keywords, headless, categories=None, env_file='.e
     crawler = None
     try:
         # VapeMonsterCrawler, VapingLabCrawler, Juice24Crawler, Juice99Crawler, JuiceboxCrawler, JuiceshopCrawler, SkyVapeCrawler, KimiVapeCrawler, JuicegramCrawler, Vape49Crawler, LoungeVapeCrawler, Juice79Crawler, BreathingKoreaCrawler, Vape9Crawler, VapeingduckCrawler인 경우 카테고리 처리
-        if (crawler_class in [VapeMonsterCrawler, VapingLabCrawler, Juice24Crawler, Juice99Crawler, JuiceboxCrawler, JuiceshopCrawler, SkyVapeCrawler, KimiVapeCrawler, JuicegramCrawler, Vape49Crawler, LoungeVapeCrawler, Juice79Crawler, BreathingKoreaCrawler, Vape9Crawler, VapeingduckCrawler, VapebibiCrawler, VaporwaveCrawler, WitchjuiceCrawler, CiganuriCrawler, MamavapeCrawler, Juice23Crawler, KarivapeCrawler, EveryoneVapeCrawler, AecsangdeokhuCrawler, JuicemarketCrawler, ElecshopCrawler]) and categories and len(
+        if (crawler_class in [VapeMonsterCrawler, VapingLabCrawler, Juice24Crawler, Juice99Crawler, JuiceboxCrawler, JuiceshopCrawler, SkyVapeCrawler, KimiVapeCrawler, JuicegramCrawler, Vape49Crawler, LoungeVapeCrawler, Juice79Crawler, BreathingKoreaCrawler, Vape9Crawler, VapeingduckCrawler, VapebibiCrawler, VaporwaveCrawler, WitchjuiceCrawler, CiganuriCrawler, MamavapeCrawler, Juice23Crawler, KarivapeCrawler, EveryoneVapeCrawler, AecsangdeokhuCrawler, JuicemarketCrawler, ElecshopCrawler, DeliquidCrawler]) and categories and len(
                 categories) > 0:
             # 첫 번째 카테고리로 인스턴스 생성
             first_category = categories[0]
@@ -158,12 +159,12 @@ def main():
     """스크립트의 주요 진입점."""
     # 명령줄 인수 파싱
     parser = argparse.ArgumentParser(description='VapeCrawler - A modular web crawler for vape products')
-    parser.add_argument('--sites', nargs='+', choices=['vapemonster', 'vapinglab', 'juice24', 'juice99', 'juicebox', 'juiceshop', 'skyvape', 'kimivape', 'juicegram', 'vape49', 'loungevape', 'juice79', 'breathingkorea', 'vape9', 'vapeingduck', 'vapebibi', 'vaporwave', 'witchjuice', 'ciganuri', 'mamavape', 'vape365', '23juice', 'karivape', 'everyonevape', 'tfnmall', 'aecsangdeokhu', 'juicemarket', 'elecshop', 'all'], default=['all'],
+    parser.add_argument('--sites', nargs='+', choices=['vapemonster', 'vapinglab', 'juice24', 'juice99', 'juicebox', 'juiceshop', 'skyvape', 'kimivape', 'juicegram', 'vape49', 'loungevape', 'juice79', 'breathingkorea', 'vape9', 'vapeingduck', 'vapebibi', 'vaporwave', 'witchjuice', 'ciganuri', 'mamavape', 'vape365', '23juice', 'karivape', 'everyonevape', 'tfnmall', 'aecsangdeokhu', 'juicemarket', 'elecshop', 'deliquid', 'all'], default=['all'],
                         help='Sites to crawl (default: all)')
     parser.add_argument('--keywords', nargs='+', default=['vape'],
                         help='Keywords to search for (default: vape)')
     parser.add_argument('--categories', nargs='+', choices=['입호흡', '폐호흡'],
-                        help='Categories to crawl (VapeMonster: 입호흡, 폐호흡 / VapingLab: 입호흡, 폐호흡 / Juice24: 입호흡, 폐호흡 / Juice99: 입호흡, 폐호흡 / Juicebox: 입호흡, 폐호흡 / Juiceshop: 입호흡, 폐호흡 / SkyVape: 입호흡, 폐호흡 / KimiVape: 입호흡, 폐호흡 / Juicegram: 입호흡, 폐호흡 / Vape49: 입호흡, 폐호흡 / LoungeVape: 입호흡, 폐호흡 / Juice79: 입호흡, 폐호흡 / BreathingKorea: 입호흡, 폐호흡 / Vape9: 입호흡, 폐호흡 / Vapeingduck: 입호흡, 폐호흡 / Vapebibi: 입호흡, 폐호흡)')
+                        help='Categories to crawl (VapeMonster: 입호흡, 폐호흡 / VapingLab: 입호흡, 폐호흡 / Juice24: 입호흡, 폐호흡 / Juice99: 입호흡, 폐호흡 / Juicebox: 입호흡, 폐호흡 / Juiceshop: 입호흡, 폐호흡 / SkyVape: 입호흡, 폐호흡 / KimiVape: 입호흡, 폐호흡 / Juicegram: 입호흡, 폐호흡 / Vape49: 입호흡, 폐호흡 / LoungeVape: 입호흡, 폐호흡 / Juice79: 입호흡, 폐호흡 / BreathingKorea: 입호흡, 폐호흡 / Vape9: 입호흡, 폐호흡 / Vapeingduck: 입호흡, 폐호흡 / Vapebibi: 입호흡, 폐호흡 / Deliquid: 입호흡, 폐호흡)')
     parser.add_argument('--no-headless', action='store_true',
                         help='Run browsers in non-headless mode (visible)')
     parser.add_argument('--env-file', type=str,
@@ -172,7 +173,7 @@ def main():
 
     # 크롤링할 사이트 결정
     if 'all' in args.sites:
-        sites_to_crawl = ['vapemonster', 'vapinglab', 'juice24', 'juice99', 'juicebox', 'juiceshop', 'skyvape', 'kimivape', 'juicegram', 'vape49', 'loungevape', 'juice79', 'breathingkorea', 'vape9', 'vapeingduck', 'vapebibi', 'vaporwave', 'witchjuice', 'ciganuri', 'mamavape', 'vape365', '23juice', 'karivape', 'everyonevape', 'tfnmall', 'aecsangdeokhu', 'juicemarket', 'elecshop']
+        sites_to_crawl = ['vapemonster', 'vapinglab', 'juice24', 'juice99', 'juicebox', 'juiceshop', 'skyvape', 'kimivape', 'juicegram', 'vape49', 'loungevape', 'juice79', 'breathingkorea', 'vape9', 'vapeingduck', 'vapebibi', 'vaporwave', 'witchjuice', 'ciganuri', 'mamavape', 'vape365', '23juice', 'karivape', 'everyonevape', 'tfnmall', 'aecsangdeokhu', 'juicemarket', 'elecshop', 'deliquid']
     else:
         sites_to_crawl = args.sites
 
@@ -205,6 +206,7 @@ def main():
         'aecsangdeokhu': AecsangdeokhuCrawler,
         'juicemarket': JuicemarketCrawler,
         'elecshop': ElecshopCrawler,
+        'deliquid': DeliquidCrawler,
         # 'skyvape': SkyVapeCrawler //TODO 로그인 프로세스 필요
     }
 
@@ -223,7 +225,7 @@ def main():
     for site in sites_to_crawl:
         if site in crawler_map:
             # 스레드 생성
-            if (site == 'vapemonster' or site == 'vapinglab' or site == 'juice24' or site == 'juice99' or site == 'juicebox' or site == 'juiceshop' or site == 'kimivape' or site == 'juicegram' or site == 'vape49' or site == 'loungevape' or site == 'juice79' or site == 'breathingkorea' or site == 'vape9' or site == 'vapeingduck' or site == 'vapebibi' or site == 'vaporwave' or site == 'witchjuice' or site == 'ciganuri' or site == 'mamavape' or site == 'vape365' or site == '23juice' or site == 'karivape' or site == 'everyonevape' or site == 'tfnmall' or site == 'aecsangdeokhu' or site == 'juicemarket' or site == 'elecshop') and args.categories:
+            if (site == 'vapemonster' or site == 'vapinglab' or site == 'juice24' or site == 'juice99' or site == 'juicebox' or site == 'juiceshop' or site == 'kimivape' or site == 'juicegram' or site == 'vape49' or site == 'loungevape' or site == 'juice79' or site == 'breathingkorea' or site == 'vape9' or site == 'vapeingduck' or site == 'vapebibi' or site == 'vaporwave' or site == 'witchjuice' or site == 'ciganuri' or site == 'mamavape' or site == 'vape365' or site == '23juice' or site == 'karivape' or site == 'everyonevape' or site == 'tfnmall' or site == 'aecsangdeokhu' or site == 'juicemarket' or site == 'elecshop' or site == 'deliquid') and args.categories:
                 thread = threading.Thread(
                     target=run_crawler,
                     args=(crawler_map[site], args.keywords, not args.no_headless, args.categories, args.env_file),
