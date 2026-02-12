@@ -27,7 +27,7 @@ class VapeMonsterCrawler(BaseCrawler):
         """
         selectors = {
             "list": "div.item_cont",
-            "title": "div.item_tit_box a",
+            "title": "div.item_tit_box a strong",
             "price": "div.item_money_box strong",
             "url": "div.item_tit_box a",
             "image": "div.item_photo_box img",
