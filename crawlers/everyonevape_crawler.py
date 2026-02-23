@@ -31,6 +31,7 @@ class EveryoneVapeCrawler(BaseCrawler):
         super().__init__("everyonevape", headless, env_file=env_file)
         self.base_url = self.BASE_HOST
         self.category = category
+        self.category_url = ""
 
     def _fetch_api(self, cate_no, page=1):
         url = self.API_TEMPLATE.format(cate_no=cate_no, page=page)

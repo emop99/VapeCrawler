@@ -382,7 +382,10 @@ class BaseCrawler:
                 if isinstance(cat_val, str) and cat_val.startswith('http'):
                     self.category_url = cat_val
                 elif hasattr(self, 'base_url'):
-                    if "/product/list.html?cate_no=" not in str(self.category_url): # 이미 경로인 경우
+                    # cat_val이 숫자만 포함하면 Cafe24 기본 경로 사용
+                    if str(cat_val).isdigit():
+                         self.category_url = f"{self.base_url}/product/list.html?cate_no={cat_val}"
+                    else:
                          self.category_url = f"{self.base_url}{cat_val}"
             
             products = self.get_products()
