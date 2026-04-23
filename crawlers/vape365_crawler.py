@@ -12,8 +12,9 @@ class Vape365Crawler(BaseCrawler):
     """
 
     CATEGORIES = {
-        "입호흡": "https://vape365.kr/product/list.html?cate_no=60",
-        "폐호흡": "https://vape365.kr/product/list.html?cate_no=61",
+        "입호흡": "https://vape365.kr/product/list.html?cate_no=101",
+        # "입호흡": "https://vape365.kr/product/list.html?cate_no=60",
+        # "폐호흡": "https://vape365.kr/product/list.html?cate_no=61",
     }
 
     def __init__(self, headless=True, category="입호흡", env_file='.env'):
