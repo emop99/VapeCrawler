@@ -11,15 +11,15 @@ class VaporwaveCrawler(BaseCrawler):
     Cafe24 기반 레이아웃과 동일한 셀렉터 패턴을 사용.
     """
     CATEGORIES = {
-        "입호흡": "45",
-        "폐호흡": "44",
+        "입호흡": "/products?cate_no=45",
+        "폐호흡": "/products?cate_no=44",
     }
 
     def __init__(self, headless=True, category="입호흡", env_file='.env'):
         super().__init__("vaporwave", headless, env_file=env_file)
         self.base_url = "https://vaporwave.co.kr"
         self.category = category
-        self.category_url = f"{self.base_url}/product/list.html?cate_no={self.CATEGORIES.get(category, self.CATEGORIES['입호흡'])}"
+        self.category_url = f"{self.base_url}{self.CATEGORIES.get(category, self.CATEGORIES['입호흡'])}"
 
     def get_products(self):
         """
@@ -27,13 +27,10 @@ class VaporwaveCrawler(BaseCrawler):
         """
         selectors = {
             "list": ".prdList [id^='anchorBoxId_']",
-            "title": ".description .name span:nth-child(2)",
-            "price": [
-                ".description ul.spec li:nth-child(2)",
-                ".description ul.spec li:nth-child(1)"
-            ],
+            "title": "div.description > strong > a",
+            "price": "div.description > ul > li > span",
             "url": "div.thumbnail a",
             "image": "div.thumbnail a img.img_small",
-            "sold_out": "img[alt='품절']"
+            "sold_out": "img[src='/cafe24-icons/ico_product_soldout.gif']"
         }
         return self.get_products_by_selectors(selectors)

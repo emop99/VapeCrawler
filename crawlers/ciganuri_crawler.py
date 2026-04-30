@@ -18,8 +18,8 @@ class CiganuriCrawler(BaseCrawler):
     """
 
     CATEGORIES = {
-        "입호흡": "73",
-        "폐호흡": "74",
+        "입호흡": "102",
+        "폐호흡": "103",
     }
 
     def __init__(self, headless=True, category="입호흡", env_file='.env'):

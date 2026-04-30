@@ -195,26 +195,26 @@ def main():
         'vape49': Vape49Crawler,
         'loungevape': LoungeVapeCrawler,
         'juice79': Juice79Crawler,
-        'breathingkorea': BreathingKoreaCrawler,
+        # 'breathingkorea': BreathingKoreaCrawler, // 로그인 필요
         'vape9': Vape9Crawler,
-        'vapeingduck': VapeingduckCrawler,
+        # 'vapeingduck': VapeingduckCrawler, // 상품 없어짐
         'vapebibi': VapebibiCrawler,
         'vaporwave': VaporwaveCrawler,
         'witchjuice': WitchjuiceCrawler,
         'ciganuri': CiganuriCrawler,
-        'mamavape': MamavapeCrawler,
+        # 'mamavape': MamavapeCrawler, // 상품 없어짐
         'vape365': Vape365Crawler,
         '23juice': Juice23Crawler,
-        'karivape': KarivapeCrawler,
+        # 'karivape': KarivapeCrawler, // 사이트 사라짐
         'everyonevape': EveryoneVapeCrawler,
-        'tfnmall': TfnmallCrawler,
-        'aecsangdeokhu': AecsangdeokhuCrawler,
+        # 'tfnmall': TfnmallCrawler, // 상품 없어짐
+        # 'aecsangdeokhu': AecsangdeokhuCrawler, // 상품 없어짐
         'juicemarket': JuicemarketCrawler,
         'elecshop': ElecshopCrawler,
         'deliquid': DeliquidCrawler,
         'bangbang': BangBangCrawler,
-        'pengjuice': PengJuiceCrawler,
-        'pongdangjuice': PongdangJuiceCrawler,
+        # 'pengjuice': PengJuiceCrawler, // 상품 없어짐
+        # 'pongdangjuice': PongdangJuiceCrawler, // 로그인 필요
         'gogovape': GogovapeCrawler,
         # 'skyvape': SkyVapeCrawler //TODO 로그인 프로세스 필요
     }

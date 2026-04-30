@@ -17,7 +17,7 @@ class JuiceboxCrawler(BaseCrawler):
 
     def __init__(self, headless=True, category="입호흡", env_file='.env'):
         super().__init__("juicebox", headless, env_file=env_file)
-        self.base_url = "https://juicebox.co.kr"
+        self.base_url = "https://juicebox.kr"
         self.category = category
         self.category_url = f"{self.base_url}/product/list.html?cate_no={self.CATEGORIES.get(category, self.CATEGORIES['입호흡'])}"
 

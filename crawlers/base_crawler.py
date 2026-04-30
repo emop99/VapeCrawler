@@ -283,7 +283,9 @@ class BaseCrawler:
 
                     # URL
                     url_selector = selectors["url"]
-                    if isinstance(url_selector, dict) and "attribute" in url_selector:
+                    if url_selector == "":
+                        relative_url = element.get_attribute("href")
+                    elif isinstance(url_selector, dict) and "attribute" in url_selector:
                         relative_url = self.extract_attribute(element, url_selector.get("selector", ""), url_selector["attribute"])
                     else:
                         relative_url = self.extract_attribute(element, url_selector, "href")
