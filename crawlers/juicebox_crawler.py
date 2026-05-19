@@ -11,22 +11,22 @@ class JuiceboxCrawler(BaseCrawler):
 
     # 카테고리 URL 매핑
     CATEGORIES = {
-        "입호흡": "52",
-        "폐호흡": "51",
+        "입호흡": "/products?cate_no=52",
+        "폐호흡": "/products?cate_no=51",
     }
 
     def __init__(self, headless=True, category="입호흡", env_file='.env'):
         super().__init__("juicebox", headless, env_file=env_file)
         self.base_url = "https://juicebox.kr"
         self.category = category
-        self.category_url = f"{self.base_url}/product/list.html?cate_no={self.CATEGORIES.get(category, self.CATEGORIES['입호흡'])}"
+        self.category_url = f"{self.base_url}{self.CATEGORIES.get(category, self.CATEGORIES['입호흡'])}"
 
     def get_products(self):
         """
         주스박스에서 제품을 가져옵니다.
         """
         selectors = {
-            "list": ".prdList__item",
+            "list": "[id^='anchorBoxId_']",
             "title": ".description .name a",
             "price": ".description .spec_wrap .product_price span:nth-child(2)",
             "url": ".description .name a",

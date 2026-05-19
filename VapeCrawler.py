@@ -189,18 +189,18 @@ def main():
         'juice24': Juice24Crawler,
         'juice99': Juice99Crawler,
         'juicebox': JuiceboxCrawler,
-        'juiceshop': JuiceshopCrawler,
-        'kimivape': KimiVapeCrawler,
+        # 'juiceshop': JuiceshopCrawler, // 사이트 이동
+        # 'kimivape': KimiVapeCrawler, // 로그인 필요
         'juicegram': JuicegramCrawler,
-        'vape49': Vape49Crawler,
+        # 'vape49': Vape49Crawler, // 로그인 필요
         'loungevape': LoungeVapeCrawler,
-        'juice79': Juice79Crawler,
+        # 'juice79': Juice79Crawler, // 상품 없음
         # 'breathingkorea': BreathingKoreaCrawler, // 로그인 필요
         'vape9': Vape9Crawler,
         # 'vapeingduck': VapeingduckCrawler, // 상품 없어짐
         'vapebibi': VapebibiCrawler,
         'vaporwave': VaporwaveCrawler,
-        'witchjuice': WitchjuiceCrawler,
+        # 'witchjuice': WitchjuiceCrawler, // 사이트 사라짐
         'ciganuri': CiganuriCrawler,
         # 'mamavape': MamavapeCrawler, // 상품 없어짐
         'vape365': Vape365Crawler,
@@ -210,7 +210,7 @@ def main():
         # 'tfnmall': TfnmallCrawler, // 상품 없어짐
         # 'aecsangdeokhu': AecsangdeokhuCrawler, // 상품 없어짐
         'juicemarket': JuicemarketCrawler,
-        'elecshop': ElecshopCrawler,
+        # 'elecshop': ElecshopCrawler, // 로그인 필요
         'deliquid': DeliquidCrawler,
         'bangbang': BangBangCrawler,
         # 'pengjuice': PengJuiceCrawler, // 상품 없어짐
